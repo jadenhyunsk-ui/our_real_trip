@@ -1,0 +1,526 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+<meta name="theme-color" content="#0F3D3A">
+<title>렌트카 비교</title>
+<style>
+:root{
+  --bg:#F1F7F3;
+  --card:#FFFFFF;
+  --ink:#0F3D3A;
+  --muted:#6B8783;
+  --line:#DCE8E1;
+  --grid:#E4EFE9;
+  --navy:#0F3D3A;
+  --coral:#F2685A;
+  --sand:#FCE3DF;
+  --green:#2E7D5B;
+  --red:#C1543A;
+  --font:-apple-system,BlinkMacSystemFont,'Apple SD Gothic Neo','Malgun Gothic','Noto Sans KR',sans-serif;
+  --mono:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;
+}
+*{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent;}
+html{-webkit-text-size-adjust:100%;overflow-x:hidden;}
+body{background:var(--bg);color:var(--ink);font-family:var(--font);font-size:14px;line-height:1.45;padding-bottom:70px;overflow-x:hidden;max-width:100vw;}
+button{font-family:inherit;cursor:pointer;border:none;background:none;color:inherit;}
+input,select,textarea{font-family:inherit;color:inherit;font-size:13px;}
+a{color:inherit;text-decoration:none;}
+
+/* ===== 헤더 ===== */
+.appbar{background:var(--navy);color:#fff;padding:11px 12px 9px;}
+.appbar-row{display:flex;justify-content:space-between;align-items:flex-start;gap:6px 8px;flex-wrap:wrap;}
+.appbar-row>div:first-child{flex:1 1 150px;min-width:0;}
+.sync-pill{display:inline-block;max-width:100%;font-size:10px;font-family:var(--mono);
+  background:rgba(255,255,255,.1);border:1px solid rgba(255,255,255,.16);padding:3px 8px;border-radius:999px;color:#C6D6E2;
+  white-space:normal;overflow-wrap:break-word;}
+.appbar-actions{display:flex;gap:4px;flex:0 0 auto;}
+.ab-btn{font-size:10.5px;font-weight:600;background:rgba(255,255,255,.12);border:1px solid rgba(255,255,255,.18);
+  color:#fff;padding:8px 10px;min-height:34px;min-width:34px;border-radius:7px;white-space:nowrap;
+  display:flex;align-items:center;justify-content:center;}
+.ab-btn svg{width:15px;height:15px;}
+
+main{padding:12px 10px;max-width:100%;}
+
+/* ===== 섹션 헤더 ===== */
+.sec-head{display:flex;align-items:center;justify-content:space-between;gap:8px;margin:14px 0 7px;}
+.sec-head:first-child{margin-top:0;}
+.sec-title{font-size:14.5px;font-weight:700;color:var(--navy);}
+.sec-count{font-size:11px;font-family:var(--mono);color:var(--muted);}
+.hint{font-size:11.5px;color:#6E6858;line-height:1.6;margin-bottom:9px;
+  background:var(--sand);border-radius:8px;padding:8px 10px;border-left:3px solid var(--coral);}
+.hint b{color:var(--coral);}
+
+/* ===== 엑셀형 표 (원래 탭과 동일한 양식) ===== */
+.tbl-wrap{background:var(--card);border:1px solid var(--line);border-radius:9px;overflow:hidden;}
+.tbl-scroll{overflow-x:auto;-webkit-overflow-scrolling:touch;}
+table.grid{border-collapse:collapse;width:100%;}
+table.grid th,table.grid td{border:1px solid var(--grid);padding:0;vertical-align:middle;}
+table.grid thead th{
+  background:var(--navy);color:#fff;font-size:10.5px;font-weight:700;letter-spacing:.02em;
+  padding:8px 6px;text-align:center;white-space:nowrap;position:sticky;top:0;z-index:2;
+}
+table.grid thead th:first-child{position:sticky;left:0;top:0;z-index:4;}
+table.grid tbody td{background:#fff;}
+table.grid tbody tr:nth-child(even) td{background:#FCFAF5;}
+table.grid td input,table.grid td select,table.grid td textarea{
+  width:100%;border:none;background:transparent;padding:8px 7px;font-size:13px;outline:none;display:block;
+}
+table.grid td textarea{resize:vertical;min-height:34px;line-height:1.4;}
+table.grid td input:focus,table.grid td select:focus,table.grid td textarea:focus{background:#FFF6E9;}
+table.grid td.num input{text-align:right;font-family:var(--mono);}
+table.grid td.ctr{text-align:center;}
+table.grid td.sel{width:44px;text-align:center;background:#FAF7F1!important;}
+table.grid td.sel input{width:18px;height:18px;accent-color:var(--coral);margin:8px auto;display:block;}
+table.grid td.star select{color:var(--coral);text-align:center;}
+table.grid td.del{width:32px;text-align:center;background:#FAF7F1!important;}
+table.grid td.del button{width:100%;padding:8px 0;color:var(--red);font-size:13px;}
+.scroll-hint{font-size:10px;color:var(--muted);font-family:var(--mono);padding:6px 9px;background:#FAF7F1;border-top:1px solid var(--grid);}
+
+/* ===== 버튼 ===== */
+.btn-add{width:100%;padding:10px;font-size:13px;font-weight:700;color:#fff;background:var(--navy);border-radius:8px;margin-top:8px;}
+.btn-apply{width:100%;padding:13px;font-size:14px;font-weight:700;color:#fff;background:var(--green);
+  border-radius:9px;margin-top:8px;box-shadow:0 3px 10px rgba(46,125,91,.22);}
+.empty{text-align:center;padding:20px 14px;font-size:12.5px;color:var(--muted);
+  background:var(--card);border-radius:9px;border:1.5px dashed var(--line);}
+.back{display:inline-block;font-size:12.5px;font-weight:600;color:var(--navy);margin-bottom:11px;}
+
+/* ===== 토스트 ===== */
+.toast{position:fixed;left:50%;bottom:18px;transform:translateX(-50%) translateY(12px);
+  background:var(--green);color:#fff;font-size:12px;font-weight:600;padding:8px 16px;border-radius:999px;
+  opacity:0;pointer-events:none;transition:all .2s;z-index:200;box-shadow:0 3px 12px rgba(0,0,0,.15);}
+.toast.show{opacity:1;transform:translateX(-50%) translateY(0);}
+
+</style>
+</head>
+<body>
+<div id="appbar"></div>
+<main>
+<a class="back" href="../../index.html#rentalcar">← 6. 렌트카 탭으로</a>
+<div class="sec-head"><div class="sec-title">렌트카 비교표</div><div class="sec-count" id="cnt"></div></div>
+<div id="hintbox" class="hint"></div>
+<div id="cards"></div>
+</main>
+<div id="toast" class="toast">저장됨 ✓</div>
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-database-compat.js"></script>
+<script>
+/* ===== 저장소 ===== */
+var STORAGE_KEY='tripData_v4';
+var ACTIVE_KEY='tripActiveId_v1';
+function uid(){return 'id_'+Math.random().toString(36).slice(2,9);}
+var PAY_OPTS=['카드','현금','마일리지','기타'];
+
+/* ===== 통화 ===== */
+var CURRENCIES=[
+ {code:'AUD',name:'호주 달러',sym:'A$',rate:920},
+ {code:'JPY',name:'일본 엔',sym:'¥',rate:9.3},
+ {code:'USD',name:'미국 달러',sym:'$',rate:1380},
+ {code:'EUR',name:'유로',sym:'€',rate:1500},
+ {code:'GBP',name:'영국 파운드',sym:'£',rate:1750},
+ {code:'CNY',name:'중국 위안',sym:'¥',rate:192},
+ {code:'HKD',name:'홍콩 달러',sym:'HK$',rate:177},
+ {code:'TWD',name:'대만 달러',sym:'NT$',rate:43},
+ {code:'SGD',name:'싱가포르 달러',sym:'S$',rate:1030},
+ {code:'THB',name:'태국 바트',sym:'฿',rate:40},
+ {code:'VND',name:'베트남 동',sym:'₫',rate:0.055},
+ {code:'PHP',name:'필리핀 페소',sym:'₱',rate:24},
+ {code:'MYR',name:'말레이시아 링깃',sym:'RM',rate:310},
+ {code:'IDR',name:'인도네시아 루피아',sym:'Rp',rate:0.085},
+ {code:'NZD',name:'뉴질랜드 달러',sym:'NZ$',rate:840},
+ {code:'CAD',name:'캐나다 달러',sym:'C$',rate:1010},
+ {code:'CHF',name:'스위스 프랑',sym:'Fr',rate:1600},
+ {code:'AED',name:'UAE 디르함',sym:'AED',rate:376},
+ {code:'INR',name:'인도 루피',sym:'₹',rate:16.5},
+ {code:'TRY',name:'튀르키예 리라',sym:'₺',rate:34},
+ {code:'MOP',name:'마카오 파타카',sym:'MOP',rate:172},
+ {code:'KRW',name:'대한민국 원',sym:'₩',rate:1}
+];
+function curInfo(code){
+  for(var i=0;i<CURRENCIES.length;i++){if(CURRENCIES[i].code===code)return CURRENCIES[i];}
+  return CURRENCIES[CURRENCIES.length-1];
+}
+function localCur(D){return (D.meta&&D.meta.currency)||'AUD';}
+function money(n){var v=Number(n);if(isNaN(v)||n===''||n==null)return '';
+  return Math.round(v).toLocaleString('ko-KR');}
+
+function defaultTripData(){return{
+  meta:{title:'첫 여행',destination:'호주 케언즈',currency:'AUD',rate:920,
+        startDate:'2026-10-23',endDate:'',updatedAt:''},
+  itinerary:[],
+  flights:[
+    {id:uid(),tripType:'왕복',agency:'',price:'',priceCur:'KRW',payment:'카드',memo:'',
+     segs:[
+       {id:uid(),date:'2026-10-23',time:'20:05',arriveTime:'06:45',airline:'대한항공',flightNo:'KE407',from:'인천(ICN)',to:'브리즈번(BNE)'},
+       {id:uid(),date:'2026-10-24',time:'',arriveTime:'',airline:'',flightNo:'',from:'브리즈번(BNE)',to:'케언즈(CNS)'}
+     ]}
+  ],
+  hotels:{},tours:[],tourCompare:[],
+  expenses:[],rentalcar:[],rentalCompare:[],flightCompare:[],hotelCompare:[],
+  records:[],ideas:[],summaryNotes:{}
+};}
+
+function deepMerge(base,inc){var out={};for(var k in base)out[k]=base[k];
+  for(var j in (inc||{})){if(inc[j]!==undefined&&inc[j]!==null)out[j]=inc[j];}return out;}
+function fixTripData(raw){
+  var merged=deepMerge(defaultTripData(),raw||{});
+  merged.meta=deepMerge(defaultTripData().meta,(raw&&raw.meta)||{});
+  return merged;
+}
+function defaultAllData(){
+  var tid=uid();var trips={};trips[tid]=defaultTripData();
+  return {trips:trips,tripOrder:[tid]};
+}
+function wrapAsMultiTrip(raw){
+  var tid=uid();var trips={};trips[tid]=fixTripData(raw);
+  return {trips:trips,tripOrder:[tid]};
+}
+function normalizeAllData(all){
+  if(!all||!all.trips)return null;
+  var order=(all.tripOrder&&all.tripOrder.length)?all.tripOrder.slice():Object.keys(all.trips);
+  var fixed={};
+  order.forEach(function(tid){var t=all.trips[tid];if(!t)return;fixed[tid]=fixTripData(t);});
+  order=order.filter(function(tid){return fixed[tid];});
+  if(!order.length)return null;
+  return {trips:fixed,tripOrder:order};
+}
+function loadData(){
+  try{
+    var raw=localStorage.getItem(STORAGE_KEY);
+    if(!raw)return defaultAllData();
+    var parsed=JSON.parse(raw);
+    var all=parsed&&parsed.trips?normalizeAllData(parsed):wrapAsMultiTrip(parsed);
+    return all||defaultAllData();
+  }catch(e){console.error(e);return defaultAllData();}
+}
+function saveData(d,key){
+  try{
+    d.meta=d.meta||{};d.meta.updatedAt=new Date().toISOString();
+    localStorage.setItem(STORAGE_KEY,JSON.stringify(AllData));
+    fbQueueSync(key||curSection);
+    toast();return true;
+  }catch(e){console.error(e);return false;}
+}
+var _tt=null;
+function toast(){var t=document.getElementById('toast');if(!t)return;
+  t.classList.add('show');clearTimeout(_tt);_tt=setTimeout(function(){t.classList.remove('show');},1000);}
+function exportData(){
+  var blob=new Blob([JSON.stringify(AllData,null,2)],{type:'application/json'});
+  var url=URL.createObjectURL(blob);var a=document.createElement('a');
+  a.href=url;a.download='trip-data-'+new Date().toISOString().slice(0,16).replace(/[-:T]/g,'')+'.json';
+  document.body.appendChild(a);a.click();a.remove();URL.revokeObjectURL(url);
+}
+function importFile(f,cb){
+  var r=new FileReader();
+  r.onload=function(e){
+    try{
+      var parsed=JSON.parse(e.target.result);
+      var all=parsed&&parsed.trips?normalizeAllData(parsed):wrapAsMultiTrip(parsed);
+      if(!all)throw new Error('빈 데이터');
+      AllData=all;
+      if(!AllData.trips[activeTripId])activeTripId=AllData.tripOrder[0];
+      D=AllData.trips[activeTripId];
+      localStorage.setItem(STORAGE_KEY,JSON.stringify(AllData));
+      try{localStorage.setItem(ACTIVE_KEY,activeTripId);}catch(err){}
+      fbQueueSync('*ALL*');
+      if(cb)cb();
+    }catch(err){alert('JSON을 읽을 수 없습니다: '+err.message);}
+  };
+  r.readAsText(f,'utf-8');
+}
+
+/* ===== Firebase 실시간 동기화 ===== */
+var firebaseConfig={
+  apiKey:"AIzaSyCuUOCWxyb0HgsoQKgRyR33nQwB-nk7lzw",
+  authDomain:"hyunsfamily-travel.firebaseapp.com",
+  databaseURL:"https://hyunsfamily-travel-default-rtdb.asia-southeast1.firebasedatabase.app",
+  projectId:"hyunsfamily-travel",
+  storageBucket:"hyunsfamily-travel.firebasestorage.app",
+  messagingSenderId:"813263924653",
+  appId:"1:813263924653:web:bd562f1e5ad0ed97678524"
+};
+var curSection='rentalCompare',curRerender=null;
+var fbRef=null,fbStatus='connecting',fbWriteTimers={},pendingRerender=false;
+
+function isEditableFocus(){
+  var a=document.activeElement;
+  if(!a)return false;
+  var tag=a.tagName;
+  return tag==='INPUT'||tag==='SELECT'||tag==='TEXTAREA';
+}
+function rerenderNow(){
+  if(curRerender)curRerender();
+  updateSyncPill();
+}
+function scheduleRerender(){
+  if(isEditableFocus()){pendingRerender=true;return;}
+  rerenderNow();
+}
+document.addEventListener('focusout',function(){
+  if(pendingRerender){pendingRerender=false;setTimeout(rerenderNow,60);}
+},true);
+
+function fbInit(){
+  try{
+    if(typeof firebase==='undefined'){fbStatus='error';updateSyncPill();return;}
+    firebase.initializeApp(firebaseConfig);
+    fbRef=firebase.database().ref('trip');
+    fbRef.on('value',onFbValue,function(err){fbStatus='error';console.error('firebase',err);updateSyncPill();});
+  }catch(e){console.error(e);fbStatus='error';updateSyncPill();}
+}
+function onFbValue(snap){
+  var remote=snap.val();
+  fbStatus='synced';
+  if(!remote){fbRef.set(AllData).catch(function(e){console.error(e);});updateSyncPill();return;}
+  if(!remote.trips){
+    var wrapped=wrapAsMultiTrip(remote);
+    AllData=wrapped;activeTripId=wrapped.tripOrder[0];D=AllData.trips[activeTripId];
+    try{localStorage.setItem(ACTIVE_KEY,activeTripId);}catch(e){}
+    localStorage.setItem(STORAGE_KEY,JSON.stringify(AllData));
+    fbRef.set(AllData).catch(function(e){console.error(e);});
+    scheduleRerender();
+    return;
+  }
+  var changed=false;
+  var order=(remote.tripOrder&&remote.tripOrder.length)?remote.tripOrder:Object.keys(remote.trips);
+  var newTrips={};
+  order.forEach(function(tid){
+    var rt=remote.trips[tid];
+    if(!rt)return;
+    var lt=AllData.trips[tid];
+    if(!lt){newTrips[tid]=fixTripData(rt);changed=true;return;}
+    for(var k in rt){
+      var tk=tid+'::'+k;
+      if(fbWriteTimers[tk])continue;
+      if(JSON.stringify(rt[k])!==JSON.stringify(lt[k])){lt[k]=rt[k];changed=true;}
+    }
+    newTrips[tid]=lt;
+  });
+  if(!order.length)return;
+  AllData.trips=newTrips;
+  if(AllData.tripOrder.join(',')!==order.join(',')){AllData.tripOrder=order;changed=true;}
+  if(!AllData.trips[activeTripId]){
+    activeTripId=AllData.tripOrder[0];
+    try{localStorage.setItem(ACTIVE_KEY,activeTripId);}catch(e){}
+    changed=true;
+  }
+  D=AllData.trips[activeTripId];
+  if(changed){localStorage.setItem(STORAGE_KEY,JSON.stringify(AllData));scheduleRerender();}
+  else{updateSyncPill();}
+}
+function fbQueueSync(key){
+  if(!fbRef)return;
+  if(key==='tripOrder'){fbRef.child('tripOrder').set(AllData.tripOrder).catch(function(e){console.error(e);});return;}
+  if(!key||key==='*ALL*'){fbRef.set(AllData).catch(function(e){console.error(e);});return;}
+  var tk=activeTripId+'::'+key;
+  if(fbWriteTimers[tk])clearTimeout(fbWriteTimers[tk]);
+  fbWriteTimers[tk]=setTimeout(function(){
+    delete fbWriteTimers[tk];
+    var upd={};upd[key]=D[key];
+    fbRef.child('trips/'+activeTripId).update(upd).catch(function(e){console.error('fb sync',e);});
+  },500);
+}
+function updateSyncPill(){
+  var pill=document.getElementById('syncPill');
+  if(!pill)return;
+  if(fbStatus==='synced')pill.textContent='🟢 Connected';
+  else if(fbStatus==='error')pill.textContent='🔴 Disconnected — 새로고침 해보세요';
+  else pill.textContent='🟡 Connecting…';
+}
+
+/* ===== DOM 헬퍼 (원래 탭과 동일) ===== */
+function el(tag,cls,txt){var e=document.createElement(tag);if(cls)e.className=cls;
+  if(txt!==undefined)e.textContent=txt;return e;}
+function stars(n){var s='';n=Number(n)||0;for(var i=1;i<=5;i++)s+=(i<=n?'★':'☆');return s;}
+function cellInput(td,obj,key,type,ph,onDone){
+  var i=el('input');i.type=type||'text';i.value=obj[key]==null?'':obj[key];
+  if(ph)i.placeholder=ph;
+  i.addEventListener('input',function(){obj[key]=i.value;if(onDone)onDone(false);});
+  i.addEventListener('change',function(){obj[key]=i.value;if(onDone)onDone(true);});
+  td.appendChild(i);return i;
+}
+function cellArea(td,obj,key,ph,onDone){
+  var t=el('textarea');t.rows=1;t.value=obj[key]||'';if(ph)t.placeholder=ph;
+  t.addEventListener('input',function(){obj[key]=t.value;if(onDone)onDone(false);});
+  td.appendChild(t);return t;
+}
+function delCell(tr,onClick){
+  var td=el('td','del');var b=el('button',null,'✕');
+  b.onclick=onClick;td.appendChild(b);tr.appendChild(td);
+}
+function mkTable(cols){
+  var wrap=el('div','tbl-wrap');
+  var sc=el('div','tbl-scroll');
+  var t=el('table','grid');
+  var thead=el('thead');var tr=el('tr');
+  cols.forEach(function(c){
+    var th=el('th',null,c.t);
+    if(c.w)th.style.minWidth=c.w+'px';
+    tr.appendChild(th);
+  });
+  thead.appendChild(tr);t.appendChild(thead);
+  var tb=el('tbody');t.appendChild(tb);
+  sc.appendChild(t);wrap.appendChild(sc);
+  return {wrap:wrap,tbody:tb,table:t,scroll:sc};
+}
+function scrollHint(wrap,txt){
+  wrap.appendChild(el('div','scroll-hint',txt||'← 좌우로 밀어서 나머지 항목 보기'));
+}
+function hintBox(html){var d=el('div','hint');d.innerHTML=html;return d;}
+/* "A$308" 같은 가격 문구에서 숫자·통화를 대략 추출 */
+function parsePriceStr(s){
+  if(!s)return{amount:'',cur:''};
+  var m=String(s).match(/([^\d\s]+)?\s*([\d,]+(?:\.\d+)?)/);
+  if(!m)return{amount:'',cur:''};
+  var symRaw=(m[1]||'').trim();
+  var amount=m[2].replace(/,/g,'');
+  var cur='';
+  for(var i=0;i<CURRENCIES.length;i++){if(CURRENCIES[i].sym===symRaw){cur=CURRENCIES[i].code;break;}}
+  if(!cur&&/^US\$/.test(symRaw))cur='USD';
+  return{amount:amount,cur:cur};
+}
+function bookingsToText(bookings){
+  return (bookings||[]).map(function(b){return [b.name||'',b.note||'',b.price||'',b.url||''].join(' | ');}).join('\n');
+}
+function textToBookings(text){
+  return String(text||'').split('\n').map(function(line){
+    var parts=line.split('|').map(function(s){return s.trim();});
+    return {name:parts[0]||'',note:parts[1]||'',price:parts[2]||'',url:parts[3]||''};
+  }).filter(function(b){return b.name||b.note||b.price||b.url;});
+}
+
+/* ===== 상단바 ===== */
+var ICON_DOWNLOAD='<svg viewBox="0 0 24 24" fill="none"><path d="M12 3V15M7 10L12 15L17 10" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/><path d="M5 19H19" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>';
+var ICON_UPLOAD='<svg viewBox="0 0 24 24" fill="none"><path d="M12 15V3M7 8L12 3L17 8" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/><path d="M5 19H19" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>';
+function buildAppBar(host){
+  host.innerHTML=
+   '<div class="appbar"><div class="appbar-row">'+
+     '<div><div class="sync-pill" id="syncPill">Connecting…</div></div>'+
+     '<div class="appbar-actions">'+
+       '<button class="ab-btn" id="bExp" title="내보내기">'+ICON_DOWNLOAD+'</button>'+
+       '<button class="ab-btn" id="bImp" title="가져오기">'+ICON_UPLOAD+'</button>'+
+       '<input type="file" id="fImp" accept="application/json" hidden></div>'+
+   '</div></div>';
+  host.querySelector('#bExp').onclick=exportData;
+  host.querySelector('#fImp').onchange=function(e){var f=e.target.files[0];if(f)importFile(f,function(){location.reload();});};
+  host.querySelector('#bImp').onclick=function(){host.querySelector('#fImp').click();};
+  updateSyncPill();
+}
+
+/* ===== 비교표 (원래 탭과 동일한 표 형식) ===== */
+function renderCompareTable(root,D,arrayKey,starLabels,L){
+  var re=function(){renderCompareTable(root,D,arrayKey,starLabels,L);};
+  function blank(){
+    var st={};starLabels.forEach(function(l,li){st[li]=0;});
+    return{id:uid(),selected:false,name:L.newName,agency:'',badge:'',duration:'',points:'',
+      rating:'',ratingCount:'',reviewQuote:'',pros:'',cons:'',diveNote:'',
+      diveStars:st,tags:'',bookings:[]};
+  }
+  root.innerHTML='';
+  var arr=D[arrayKey];
+  document.getElementById('cnt').textContent=arr.length+'건';
+
+  if(!arr.length){root.appendChild(el('div','empty','비교할 업체가 없습니다. 아래 버튼으로 추가하세요.'));}
+  else{
+    var cols=[{t:'선정',w:44},{t:'뱃지',w:70},{t:'이름',w:120},{t:L.agencyPh,w:120},
+      {t:L.duration,w:130},{t:L.points,w:130},{t:'평점',w:60},{t:'리뷰수·출처',w:120},{t:'대표 후기',w:150},
+      {t:'장점',w:150},{t:'단점',w:150}];
+    starLabels.forEach(function(lab){cols.push({t:lab,w:90});});
+    cols.push({t:'평가 메모',w:150},{t:'태그',w:120},
+      {t:'예약처별 가격 (이름|비고|가격|URL, 줄마다 하나씩)',w:220},{t:'',w:32});
+    var T=mkTable(cols);
+
+    arr.forEach(function(t,idx){
+      var tr=el('tr');
+      var sv=function(full){saveData(D);if(full)re();};
+      function td(cls){var c=el('td',cls);tr.appendChild(c);return c;}
+
+      var cs=el('td','sel');
+      var chk=el('input');chk.type='checkbox';chk.checked=!!t.selected;
+      chk.addEventListener('change',function(){t.selected=chk.checked;saveData(D);});
+      cs.appendChild(chk);tr.appendChild(cs);
+
+      cellInput(td(),t,'badge','text','뱃지',sv);
+      cellInput(td(),t,'name','text',L.newName,sv);
+      cellInput(td(),t,'agency','text',L.agencyPh,sv);
+      cellInput(td(),t,'duration','text',null,sv);
+      cellInput(td(),t,'points','text',null,sv);
+      cellInput(td(),t,'rating','text','4.5',sv);
+      cellInput(td(),t,'ratingCount','text','리뷰 수/출처',sv);
+      cellArea(td(),t,'reviewQuote','대표 후기',sv);
+      cellArea(td(),t,'pros','장점',sv);
+      cellArea(td(),t,'cons','단점',sv);
+
+      t.diveStars=t.diveStars||{};
+      starLabels.forEach(function(lab,li){
+        var c=el('td','star ctr');
+        var s=el('select');
+        for(var i=0;i<=5;i++){var o=el('option',null,i===0?'—':stars(i));o.value=i;
+          if((t.diveStars[li]||0)===i)o.selected=true;s.appendChild(o);}
+        s.addEventListener('change',function(){t.diveStars[li]=Number(s.value);saveData(D);});
+        c.appendChild(s);tr.appendChild(c);
+      });
+
+      cellArea(td(),t,'diveNote','평가 메모',sv);
+      cellInput(td(),t,'tags','text','쉼표로 구분',sv);
+
+      var bkTd=el('td');
+      var bkTa=el('textarea');bkTa.rows=1;bkTa.value=bookingsToText(t.bookings);
+      bkTa.placeholder=L.notePh;
+      bkTa.addEventListener('input',function(){t.bookings=textToBookings(bkTa.value);});
+      bkTa.addEventListener('change',function(){t.bookings=textToBookings(bkTa.value);saveData(D);});
+      bkTd.appendChild(bkTa);tr.appendChild(bkTd);
+
+      delCell(tr,function(){
+        if(confirm('비교표에서 삭제할까요?')){arr.splice(idx,1);saveData(D);re();}
+      });
+      T.tbody.appendChild(tr);
+    });
+
+    root.appendChild(T.wrap);
+    scrollHint(T.wrap);
+  }
+
+  var add=el('button','btn-add',L.addLabel);
+  add.onclick=function(){arr.push(blank());saveData(D);re();};
+  root.appendChild(add);
+
+  var apply=el('button','btn-apply',L.applyLabel);
+  apply.onclick=function(){
+    var chosen=arr.filter(function(c){return c.selected;});
+    if(!chosen.length){alert('반영할 항목에 체크(선정)해주세요.');return;}
+    chosen.forEach(function(c){
+      var b=(c.bookings&&c.bookings[0])||{};
+      L.applyOne(c,b,parsePriceStr(b.price));
+    });
+    saveData(D,L.mainKey);
+    alert(chosen.length+'개 항목이 반영되었습니다.');
+    location.href=L.mainTabHref;
+  };
+  root.appendChild(apply);
+  return re;
+}
+
+var AllData=loadData();
+var activeTripId=localStorage.getItem(ACTIVE_KEY);
+if(!activeTripId||!AllData.trips[activeTripId])activeTripId=AllData.tripOrder[0];
+var D=AllData.trips[activeTripId];
+buildAppBar(document.getElementById('appbar'));
+document.getElementById('hintbox').innerHTML='렌트카 탭과 <b>동일한 표 형식</b>입니다. 업체별 가격·보험 조건·장단점을 비교하세요. <b>선정</b>에 체크 후 맨 아래 버튼을 누르면 체크된 업체가 렌트카 탭에 자동으로 추가됩니다.';
+var L={newName:'새 렌트카 업체',agencyPh:'픽업지점/위치',duration:'대여기간·조건',points:'차종 라인업·포함사항',
+  notePh:'예: Hertz 공홈 | 완전자차 포함 | A$65/일 | https://...',
+  addLabel:'+ 비교할 업체 추가',applyLabel:'✅ 체크한 업체를 렌트카 탭에 반영',
+  mainKey:'rentalcar',mainTabHref:'../../index.html#rentalcar',
+  applyOne:function(c,b,pp){
+    D.rentalcar.push({id:uid(),date:'',time:'',company:c.name||'',carType:c.points||'',
+      price:pp.amount||'',priceCur:pp.cur||localCur(D),insurance:b.note||'',
+      payment:'카드',memo:c.tags||''});
+  }};
+curRerender=renderCompareTable(document.getElementById('cards'),D,'rentalCompare',
+ ['보험 보장 범위','픽업/반납 편의성','차량 상태·연식','가격 만족도'],L);
+fbInit();
+
+</script>
+</body>
+</html>

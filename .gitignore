@@ -1,0 +1,12 @@
+# 개인 여행 데이터 백업 - 공개 저장소에 올리지 않음
+DATA/json/*.json
+DATA/trip-data-*.json
+DATA/이미지/*
+!DATA/이미지/.gitkeep
+
+# Claude Code 로컬 설정
+DATA/.claude/
+
+# OS
+.DS_Store
+Thumbs.db

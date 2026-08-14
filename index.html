@@ -1,0 +1,1594 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+<meta name="theme-color" content="#0F3D3A">
+<title>여행 전체 관리</title>
+<style>
+:root{
+  --bg:#F1F7F3;
+  --card:#FFFFFF;
+  --ink:#0F3D3A;
+  --muted:#6B8783;
+  --line:#DCE8E1;
+  --grid:#E4EFE9;
+  --navy:#0F3D3A;
+  --coral:#F2685A;
+  --sand:#FCE3DF;
+  --green:#2E7D5B;
+  --red:#C1543A;
+  --font:-apple-system,BlinkMacSystemFont,'Apple SD Gothic Neo','Malgun Gothic','Noto Sans KR',sans-serif;
+  --mono:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;
+}
+*{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent;}
+html{-webkit-text-size-adjust:100%;overflow-x:hidden;}
+body{background:var(--bg);color:var(--ink);font-family:var(--font);font-size:14px;line-height:1.45;padding-bottom:70px;overflow-x:hidden;max-width:100vw;}
+button{font-family:inherit;cursor:pointer;border:none;background:none;color:inherit;}
+input,select,textarea{font-family:inherit;color:inherit;font-size:13px;}
+a{color:inherit;text-decoration:none;}
+
+/* ===== 여행 선택 바 ===== */
+.tripbar{background:var(--coral);color:#fff;padding:8px 12px;display:flex;justify-content:space-between;
+  align-items:center;gap:8px;font-size:12.5px;font-weight:700;}
+.tripbar-name{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;
+  display:flex;align-items:center;gap:6px;}
+.tripbar-name .tb-icon,.tripbar-name svg{width:14px;height:14px;flex:0 0 auto;}
+.tripbar-name span{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+.tripbar-chev{flex:0 0 auto;font-size:11px;font-weight:600;opacity:.9;white-space:nowrap;}
+.trip-list{margin-bottom:12px;max-height:40vh;overflow-y:auto;}
+.trip-row{display:flex;align-items:center;gap:6px;padding:7px 0;border-bottom:1px solid var(--grid);}
+.trip-row:last-child{border-bottom:none;}
+.trip-row.active .trip-row-name{color:var(--coral);font-weight:700;}
+.trip-row-name{flex:1;min-width:0;border:1px solid var(--line);border-radius:6px;padding:7px 8px;
+  font-size:13px;background:#FCFAF6;}
+.trip-row-select{flex:0 0 auto;font-size:11px;font-weight:700;color:#fff;background:var(--navy);
+  border-radius:6px;padding:7px 10px;white-space:nowrap;}
+.trip-row-select:disabled{background:var(--sand);color:var(--muted);}
+.trip-row-del{flex:0 0 auto;font-size:12px;color:var(--red);width:30px;height:30px;}
+.trip-add-row{display:flex;gap:6px;margin-bottom:8px;}
+.trip-add-row input{flex:1;min-width:0;border:1px solid var(--line);border-radius:6px;padding:8px 9px;
+  font-size:13px;background:#FCFAF6;}
+.trip-add-row button{flex:0 0 auto;font-size:12px;font-weight:700;color:#fff;background:var(--coral);
+  border-radius:6px;padding:8px 12px;white-space:nowrap;}
+
+/* ===== 헤더 ===== */
+.appbar{background:var(--navy);color:#fff;padding:11px 12px 9px;}
+.appbar-row{display:flex;justify-content:space-between;align-items:flex-start;gap:6px 8px;flex-wrap:wrap;}
+.appbar-row>div:first-child{flex:1 1 150px;min-width:0;}
+.app-title{font-size:16px;font-weight:700;letter-spacing:-.02em;overflow-wrap:break-word;}
+.app-sub{font-size:11px;color:#9DB4C7;margin-top:2px;overflow-wrap:break-word;}
+.sync-pill{display:inline-block;max-width:100%;margin-top:6px;font-size:10px;font-family:var(--mono);
+  background:rgba(255,255,255,.1);border:1px solid rgba(255,255,255,.16);padding:3px 8px;border-radius:999px;color:#C6D6E2;
+  white-space:normal;overflow-wrap:break-word;}
+.appbar-actions{display:flex;gap:4px;flex:0 0 auto;}
+.ab-btn{font-size:10.5px;font-weight:600;background:rgba(255,255,255,.12);border:1px solid rgba(255,255,255,.18);
+  color:#fff;padding:8px 10px;min-height:34px;min-width:34px;border-radius:7px;white-space:nowrap;
+  display:flex;align-items:center;justify-content:center;}
+.ab-btn svg{width:15px;height:15px;}
+.ab-btn.primary{background:var(--coral);border-color:var(--coral);}
+
+/* ===== 탭바 ===== */
+.tabbar{position:sticky;top:0;z-index:50;background:var(--navy);display:flex;gap:5px;
+  padding:0 10px 9px;overflow-x:auto;-webkit-overflow-scrolling:touch;scrollbar-width:none;}
+.tabbar::-webkit-scrollbar{display:none;}
+.tab-btn{flex:0 0 auto;font-size:12px;font-weight:600;color:#A5BACA;background:rgba(255,255,255,.08);
+  border:1px solid rgba(255,255,255,.12);padding:9px 13px;min-height:36px;border-radius:7px;white-space:nowrap;}
+.tab-btn.active{background:#fff;color:var(--navy);border-color:#fff;}
+
+main{padding:12px 10px;max-width:100%;}
+
+/* ===== 섹션 헤더 ===== */
+.sec-head{display:flex;align-items:center;justify-content:space-between;gap:8px;margin:14px 0 7px;}
+.sec-head:first-child{margin-top:0;}
+.sec-title{font-size:14.5px;font-weight:700;color:var(--navy);}
+.sec-count{font-size:11px;font-family:var(--mono);color:var(--muted);}
+.hint{font-size:11.5px;color:#6E6858;line-height:1.6;margin-bottom:9px;
+  background:var(--sand);border-radius:8px;padding:8px 10px;border-left:3px solid var(--coral);}
+.hint b{color:var(--coral);}
+
+/* ===== 설정 바 ===== */
+.setbar{background:var(--card);border:1px solid var(--line);border-radius:9px;padding:9px 10px;margin-bottom:12px;}
+.setbar-head{display:flex;align-items:center;justify-content:space-between;gap:8px;}
+.setbar-title{font-size:12.5px;font-weight:700;color:var(--navy);display:flex;align-items:baseline;gap:6px;min-width:0;}
+.setbar-summary{font-size:10.5px;font-weight:400;color:var(--muted);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+.ios-switch{position:relative;display:inline-block;width:42px;height:24px;flex:0 0 auto;}
+.ios-switch input{position:absolute;opacity:0;width:100%;height:100%;margin:0;cursor:pointer;}
+.ios-switch .slider{position:absolute;inset:0;background:var(--line);border-radius:999px;transition:background .2s;}
+.ios-switch .slider::before{content:"";position:absolute;left:3px;top:3px;width:18px;height:18px;border-radius:50%;
+  background:#fff;box-shadow:0 1px 3px rgba(0,0,0,.25);transition:transform .2s;}
+.ios-switch input:checked+.slider{background:var(--coral);}
+.ios-switch input:checked+.slider::before{transform:translateX(18px);}
+.setbar-body{overflow:hidden;max-height:400px;opacity:1;margin-top:9px;transition:max-height .25s ease,opacity .2s ease,margin-top .25s ease;}
+.setbar-body.collapsed{max-height:0;opacity:0;margin-top:0;}
+.setgrid{display:grid;grid-template-columns:repeat(2,1fr);gap:7px;}
+.setgrid .sf{min-width:0;display:flex;flex-direction:column;gap:3px;}
+@media (min-width:480px){.setgrid{grid-template-columns:repeat(5,1fr);}}
+.setgrid .sf label{font-size:9.5px;font-weight:700;color:var(--muted);letter-spacing:.02em;}
+.setgrid .sf input,.setgrid .sf select{border:1px solid var(--line);border-radius:6px;padding:7px 8px;
+  font-size:13px;background:#FCFAF6;width:100%;outline:none;}
+.setgrid .sf input:focus,.setgrid .sf select:focus{border-color:var(--coral);background:#fff;}
+.rate-note{margin-top:6px;font-size:10.5px;color:var(--muted);font-family:var(--mono);}
+
+/* ===== 엑셀형 표 ===== */
+.tbl-wrap{background:var(--card);border:1px solid var(--line);border-radius:9px;overflow:hidden;}
+.tbl-scroll{overflow-x:auto;-webkit-overflow-scrolling:touch;}
+table.grid{border-collapse:collapse;width:100%;}
+table.grid th,table.grid td{border:1px solid var(--grid);padding:0;vertical-align:middle;}
+table.grid thead th{
+  background:var(--navy);color:#fff;font-size:10.5px;font-weight:700;letter-spacing:.02em;
+  padding:8px 6px;text-align:center;white-space:nowrap;position:sticky;top:0;z-index:2;
+}
+table.grid thead th:first-child{position:sticky;left:0;top:0;z-index:4;}
+table.grid tbody td{background:#fff;}
+table.grid tbody tr:nth-child(even) td{background:#FCFAF5;}
+table.grid td input,table.grid td select,table.grid td textarea{
+  width:100%;border:none;background:transparent;padding:8px 7px;font-size:13px;outline:none;display:block;
+}
+table.grid td textarea{resize:vertical;min-height:34px;line-height:1.4;overflow:hidden;}
+table.grid td input:focus,table.grid td select:focus,table.grid td textarea:focus{background:#FFF6E9;}
+table.grid td.num input{text-align:right;font-family:var(--mono);}
+table.grid td.ctr{text-align:center;}
+table.grid td.rowhead{
+  background:var(--sand)!important;font-size:11px;font-weight:700;color:var(--navy);
+  text-align:center;padding:6px 4px;white-space:nowrap;position:sticky;left:0;z-index:1;
+}
+table.grid td.del{width:32px;text-align:center;background:#FAF7F1!important;}
+table.grid td.del button{width:100%;padding:8px 0;color:var(--red);font-size:13px;}
+table.grid td.linkcell a{display:block;padding:8px 7px;font-size:13px;color:var(--coral);
+  text-decoration:underline;text-underline-offset:2px;white-space:nowrap;}
+tr.subtotal td{background:var(--sand)!important;font-weight:700;font-size:12px;color:var(--navy);padding:7px 8px!important;}
+tr.subtotal td.num{text-align:right;font-family:var(--mono);color:var(--coral);}
+.money-cell{display:flex;align-items:center;width:100%;}
+.money-cell input{flex:1 1 0%!important;min-width:0!important;width:auto!important;text-align:right;font-family:var(--mono);padding-right:4px!important;}
+.money-cell select{width:38px!important;flex:0 0 auto!important;font-size:9px;padding:8px 0!important;color:var(--muted);
+  border-left:1px solid var(--grid)!important;}
+.scroll-hint{font-size:10px;color:var(--muted);font-family:var(--mono);padding:6px 9px;background:#FAF7F1;border-top:1px solid var(--grid);}
+
+/* ===== 버튼 ===== */
+.btn-add{width:100%;padding:10px;font-size:13px;font-weight:700;color:#fff;background:var(--navy);border-radius:8px;margin-top:8px;}
+.btn-add.ghost{background:transparent;color:var(--navy);border:1.5px dashed var(--line);}
+.btn-wide{width:100%;padding:13px;font-size:14px;font-weight:700;color:#fff;background:var(--coral);
+  border-radius:9px;margin-top:14px;box-shadow:0 3px 10px rgba(221,92,54,.22);}
+.empty{text-align:center;padding:20px 14px;font-size:12.5px;color:var(--muted);
+  background:var(--card);border-radius:9px;border:1.5px dashed var(--line);}
+
+/* ===== 날짜 탭(지출노트) ===== */
+.daypills{display:flex;gap:6px;overflow-x:auto;padding-bottom:2px;margin-bottom:11px;-webkit-overflow-scrolling:touch;scrollbar-width:none;}
+.daypills::-webkit-scrollbar{display:none;}
+.daypill{flex:0 0 auto;font-size:12px;font-weight:600;color:var(--navy);background:var(--card);
+  border:1px solid var(--line);padding:8px 13px;border-radius:20px;white-space:nowrap;}
+.daypill.active{background:var(--coral);color:#fff;border-color:var(--coral);}
+
+/* ===== 타임라인 (일정) ===== */
+.tl-undated{background:var(--card);border:1px solid var(--line);border-radius:9px;padding:9px 10px;margin-bottom:11px;}
+.tl-undated-label{font-size:10.5px;font-weight:700;color:var(--muted);margin-bottom:7px;}
+.tl-undated-item{display:flex;gap:6px;align-items:center;margin-bottom:6px;}
+.tl-undated-item:last-child{margin-bottom:0;}
+.tl-undated-item input{flex:1;min-width:0;border:1px solid var(--line);border-radius:6px;padding:7px 8px;font-size:13px;background:#FCFAF6;}
+.tl-undated-item button{flex:0 0 auto;font-size:11px;font-weight:600;color:var(--navy);background:var(--sand);
+  border:1px solid var(--line);border-radius:6px;padding:7px 9px;white-space:nowrap;}
+.tl-wrap{background:var(--card);border:1px solid var(--line);border-radius:9px;overflow:hidden;}
+.tl-scroll{position:relative;overflow-y:auto;overflow-x:hidden;max-height:64vh;-webkit-overflow-scrolling:touch;}
+.tl-inner{position:relative;margin-left:54px;margin-right:8px;}
+.tl-hour-line{position:absolute;left:0;right:0;height:0;border-top:1px solid var(--grid);}
+.tl-hour-label{position:absolute;left:-52px;width:46px;font-size:10px;color:var(--muted);
+  font-family:var(--mono);text-align:right;pointer-events:none;}
+.tl-item{position:absolute;left:2px;right:2px;background:#FFF6E9;border:1px solid var(--coral);border-left:4px solid var(--coral);
+  border-radius:6px;padding:3px 20px 3px 6px;overflow:hidden;box-shadow:0 1px 3px rgba(0,0,0,.1);}
+.tl-time{font-size:9px;font-family:var(--mono);color:var(--coral);font-weight:700;line-height:1.2;}
+.tl-activity{width:100%;border:none;background:transparent;font-size:12.5px;padding:1px 0;outline:none;color:var(--ink);}
+.tl-del{position:absolute;top:2px;right:2px;font-size:9px;color:var(--red);width:16px;height:16px;line-height:16px;text-align:center;}
+.tl-handle{position:absolute;bottom:0;left:0;right:0;height:11px;cursor:ns-resize;text-align:center;
+  font-size:8px;color:var(--muted);line-height:9px;touch-action:none;letter-spacing:1px;}
+.tl-backdrop{position:fixed;inset:0;background:rgba(30,39,51,.45);z-index:300;}
+.tl-editor{position:fixed;left:0;right:0;bottom:0;background:#fff;border-radius:14px 14px 0 0;padding:16px;
+  box-shadow:0 -4px 20px rgba(0,0,0,.2);max-height:80vh;overflow-y:auto;}
+.tl-editor-title{font-size:14px;font-weight:700;color:var(--navy);margin-bottom:12px;}
+.tl-editor-row{display:flex;align-items:center;gap:6px;margin-bottom:10px;font-size:13px;}
+.tl-editor-row span{font-size:12.5px;color:var(--muted);}
+.tl-editor-row select{padding:7px 4px;font-size:14px;border:1px solid var(--line);border-radius:6px;background:#FCFAF6;}
+.tl-editor textarea{width:100%;border:1px solid var(--line);border-radius:7px;padding:8px 9px;font-size:13px;
+  margin-bottom:12px;background:#FCFAF6;resize:vertical;}
+.tl-editor-btns{display:flex;gap:8px;}
+.tl-editor-btns button{flex:1;padding:11px;border-radius:8px;font-weight:700;font-size:13.5px;}
+.tl-editor-btns button:first-child{background:var(--sand);color:var(--navy);}
+.tl-editor-btns button:last-child{background:var(--coral);color:#fff;}
+
+/* ===== 합계 바 ===== */
+.total-bar{display:flex;justify-content:space-between;align-items:center;background:var(--navy);color:#fff;
+  border-radius:9px;padding:11px 13px;margin-top:10px;}
+.total-bar .l{font-size:11.5px;color:#9DB4C7;}
+.total-bar .v{font-size:15px;font-weight:700;text-align:right;}
+.total-bar .v small{display:block;font-size:11px;font-weight:400;color:#9DB4C7;margin-top:2px;}
+
+/* ===== 비교 카드 ===== */
+.cmp{background:var(--card);border:1px solid var(--line);border-radius:10px;overflow:hidden;margin-bottom:13px;}
+.cmp-head{background:var(--navy);padding:12px 13px;display:flex;gap:7px;align-items:flex-start;}
+.cmp-head .left{flex:1;min-width:0;}
+.cmp-head input.name{background:transparent;border:none;border-bottom:1px dashed rgba(255,255,255,.3);
+  color:#fff;font-size:15.5px;font-weight:700;width:100%;padding-bottom:3px;outline:none;}
+.cmp-head input.agency{background:transparent;border:none;border-bottom:1px dashed rgba(255,255,255,.16);
+  color:#9DB4C7;font-size:10.5px;width:100%;margin-top:6px;outline:none;}
+.cmp-head input.badge{flex:0 0 auto;width:88px;background:var(--coral);border:none;color:#fff;
+  font-size:9.5px;font-weight:700;text-align:center;padding:5px 4px;border-radius:999px;outline:none;}
+.cmp-body{padding:12px 13px;}
+.cmp-block{margin-bottom:12px;}
+.cmp-label{font-size:10px;font-weight:700;letter-spacing:.02em;color:var(--muted);margin-bottom:5px;}
+.cmp-body input,.cmp-body textarea{border:1px solid var(--line);border-radius:7px;padding:8px 9px;
+  font-size:13px;background:#FCFAF6;width:100%;outline:none;}
+.cmp-body input:focus,.cmp-body textarea:focus{border-color:var(--coral);background:#fff;}
+.cmp-body textarea{resize:vertical;min-height:54px;}
+.star-row{display:flex;justify-content:space-between;align-items:center;gap:8px;padding:6px 0;border-bottom:1px solid var(--grid);}
+.star-row:last-child{border-bottom:none;}
+.star-row span{font-size:12.5px;flex:1;}
+.star-row select{width:auto;flex:0 0 auto;padding:5px 7px;font-size:13px;color:var(--coral);}
+.book{border:1px solid var(--line);border-radius:8px;padding:9px;margin-bottom:8px;background:#FCFAF6;}
+.book .bf{display:flex;flex-direction:column;gap:6px;}
+.book .brow{display:flex;gap:6px;}
+.book .bprice{width:88px;flex:0 0 auto;}
+.book .bact{display:flex;gap:6px;margin-top:8px;}
+.book a.go{flex:1;text-align:center;font-size:12px;font-weight:700;color:#fff;background:var(--coral);border-radius:7px;padding:8px;}
+.book button.rm{flex:0 0 auto;width:40px;border:1px solid var(--line);background:#fff;color:var(--red);border-radius:7px;font-size:12px;}
+.back{display:inline-block;font-size:12.5px;font-weight:600;color:var(--navy);margin-bottom:11px;}
+.btn-del-card{font-size:12px;font-weight:600;color:var(--red);border:1px solid #EBD3CC;border-radius:7px;padding:8px 11px;}
+
+/* ===== 토스트 ===== */
+.toast{position:fixed;left:50%;bottom:18px;transform:translateX(-50%) translateY(12px);
+  background:var(--green);color:#fff;font-size:12px;font-weight:600;padding:8px 16px;border-radius:999px;
+  opacity:0;pointer-events:none;transition:all .2s;z-index:200;box-shadow:0 3px 12px rgba(0,0,0,.15);}
+.toast.show{opacity:1;transform:translateX(-50%) translateY(0);}
+
+</style>
+</head>
+<body>
+<div id="tripbar"></div>
+<div id="appbar"></div>
+<nav class="tabbar" id="tabbar"></nav>
+<main id="content"></main>
+<div id="toast" class="toast">저장됨 ✓</div>
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-database-compat.js"></script>
+<script>
+/* ===== 저장소 ===== */
+var STORAGE_KEY='tripData_v4';
+var ACTIVE_KEY='tripActiveId_v1';
+function uid(){return 'id_'+Math.random().toString(36).slice(2,9);}
+var PAY_OPTS=['카드','현금','마일리지','기타'];
+var EXP_CATS=['항공권','숙박비','식비','간식','교통','쇼핑','기념품','관광/입장료','통신','기타'];
+
+/* ===== 통화 ===== */
+var CURRENCIES=[
+ {code:'AUD',name:'호주 달러',sym:'A$',rate:920},
+ {code:'JPY',name:'일본 엔',sym:'¥',rate:9.3},
+ {code:'USD',name:'미국 달러',sym:'$',rate:1380},
+ {code:'EUR',name:'유로',sym:'€',rate:1500},
+ {code:'GBP',name:'영국 파운드',sym:'£',rate:1750},
+ {code:'CNY',name:'중국 위안',sym:'¥',rate:192},
+ {code:'HKD',name:'홍콩 달러',sym:'HK$',rate:177},
+ {code:'TWD',name:'대만 달러',sym:'NT$',rate:43},
+ {code:'SGD',name:'싱가포르 달러',sym:'S$',rate:1030},
+ {code:'THB',name:'태국 바트',sym:'฿',rate:40},
+ {code:'VND',name:'베트남 동',sym:'₫',rate:0.055},
+ {code:'PHP',name:'필리핀 페소',sym:'₱',rate:24},
+ {code:'MYR',name:'말레이시아 링깃',sym:'RM',rate:310},
+ {code:'IDR',name:'인도네시아 루피아',sym:'Rp',rate:0.085},
+ {code:'NZD',name:'뉴질랜드 달러',sym:'NZ$',rate:840},
+ {code:'CAD',name:'캐나다 달러',sym:'C$',rate:1010},
+ {code:'CHF',name:'스위스 프랑',sym:'Fr',rate:1600},
+ {code:'AED',name:'UAE 디르함',sym:'AED',rate:376},
+ {code:'INR',name:'인도 루피',sym:'₹',rate:16.5},
+ {code:'TRY',name:'튀르키예 리라',sym:'₺',rate:34},
+ {code:'MOP',name:'마카오 파타카',sym:'MOP',rate:172},
+ {code:'KRW',name:'대한민국 원',sym:'₩',rate:1}
+];
+/* 여행지 키워드 → 통화코드 */
+var DEST_MAP=[
+ [['호주','오스트','케언즈','시드니','브리즈번','멜버른','골드코스트','퍼스','australia','cairns','sydney','brisbane'],'AUD'],
+ [['일본','도쿄','오사카','후쿠오카','삿포로','교토','오키나와','나고야','japan','tokyo','osaka'],'JPY'],
+ [['미국','하와이','괌','사이판','뉴욕','la','로스앤젤레스','샌프란','usa','hawaii','guam'],'USD'],
+ [['유럽','프랑스','파리','독일','이탈리아','로마','스페인','네덜란드','포르투갈','오스트리아','france','italy','spain'],'EUR'],
+ [['영국','런던','uk','london'],'GBP'],
+ [['중국','베이징','상하이','china','shanghai'],'CNY'],
+ [['홍콩','hongkong','hong kong'],'HKD'],
+ [['대만','타이베이','타이완','taiwan','taipei'],'TWD'],
+ [['싱가포르','singapore'],'SGD'],
+ [['태국','방콕','치앙마이','푸껫','thailand','bangkok'],'THB'],
+ [['베트남','다낭','하노이','호치민','나트랑','푸꾸옥','vietnam','danang'],'VND'],
+ [['필리핀','세부','보라카이','마닐라','philippines','cebu'],'PHP'],
+ [['말레이','쿠알라룸푸르','코타키나발루','malaysia'],'MYR'],
+ [['인도네시아','발리','자카르타','indonesia','bali'],'IDR'],
+ [['뉴질랜드','오클랜드','퀸스타운','zealand'],'NZD'],
+ [['캐나다','밴쿠버','토론토','canada'],'CAD'],
+ [['스위스','취리히','인터라켄','swiss'],'CHF'],
+ [['두바이','아부다비','에미리트','dubai'],'AED'],
+ [['인도','델리','india'],'INR'],
+ [['튀르키예','터키','이스탄불','turkey'],'TRY'],
+ [['마카오','macau'],'MOP'],
+ [['한국','국내','서울','제주','부산','korea'],'KRW']
+];
+function guessCurrency(dest){
+  if(!dest)return null;
+  var s=String(dest).toLowerCase();
+  for(var i=0;i<DEST_MAP.length;i++){
+    var keys=DEST_MAP[i][0];
+    for(var j=0;j<keys.length;j++){ if(s.indexOf(keys[j])>-1) return DEST_MAP[i][1]; }
+  }
+  return null;
+}
+function curInfo(code){
+  for(var i=0;i<CURRENCIES.length;i++){if(CURRENCIES[i].code===code)return CURRENCIES[i];}
+  return CURRENCIES[CURRENCIES.length-1];
+}
+function localCur(D){return (D.meta&&D.meta.currency)||'AUD';}
+function localRate(D){
+  var r=Number(D.meta&&D.meta.rate);
+  if(!r||isNaN(r)||r<=0)r=curInfo(localCur(D)).rate;
+  return r;
+}
+/* 금액을 원화로 환산 */
+function toKRW(amount,cur,D){
+  var v=Number(amount);
+  if(!v||isNaN(v))return 0;
+  if(cur==='KRW')return v;
+  return v*localRate(D);
+}
+function money(n){var v=Number(n);if(isNaN(v)||n===''||n==null)return '';
+  return Math.round(v).toLocaleString('ko-KR');}
+function moneyCur(n,cur){
+  if(n===''||n==null||isNaN(Number(n)))return '-';
+  return curInfo(cur).sym+money(n);
+}
+
+function defaultTripData(){return{
+  meta:{title:'첫 여행',destination:'호주 케언즈',currency:'AUD',rate:920,
+        startDate:'2026-10-23',endDate:'',updatedAt:''},
+  itinerary:[],
+  flights:[
+    {id:uid(),tripType:'왕복',agency:'',price:'',priceCur:'KRW',payment:'카드',memo:'',
+     segs:[
+       {id:uid(),date:'2026-10-23',time:'20:05',arriveTime:'06:45',airline:'대한항공',flightNo:'KE407',from:'인천(ICN)',to:'브리즈번(BNE)'},
+       {id:uid(),date:'2026-10-24',time:'',arriveTime:'',airline:'',flightNo:'',from:'브리즈번(BNE)',to:'케언즈(CNS)'}
+     ]}
+  ],
+  hotels:{},tours:[],tourCompare:defaultTourCompare(),
+  expenses:[],rentalcar:[],rentalCompare:[],flightCompare:[],hotelCompare:[],
+  records:[],ideas:[],summaryNotes:{}
+};}
+
+function defaultTourCompare(){return [
+{id:'oceanfreedom',name:'Ocean Freedom',agency:'Cairns Premier Reef & Island Tours',badge:'',
+ duration:'리프 체류 6시간',points:'Upolu Cay · Wonder Wall 2곳',rating:'4.9',ratingCount:'구글 리뷰 1,503개',
+ reviewQuote:'소형 보트라 붐비지 않고, 크루 대 다이버 비율이 2:1이라 초보자도 안심하고 다이빙할 수 있었어요.',
+ pros:'최대 75명 소규모 정원, 가족경영 30년 업체 특유의 친밀한 서비스\n인증/비인증 다이빙 모두 2:1 강사 비율(업계 최고 수준)\n6시간으로 타사 대비 리프 체류 시간이 가장 김',
+ cons:'방문 포인트가 2곳으로 Silverswift보다 적음\n정부 환경관리비 등 별도 수수료(약 A$20)가 현장 결제',
+ diveNote:'Wonder Wall(Upolu Reef 외곽)은 수심 1m까지 산호가 올라와 있어 얕은 곳에서도 관찰이 쉽고, 그물 없는 개방 수역에서 드리프트 스노클링 진행. 자유수영엔 좋지만 3곳을 도는 Silverswift보다 포인트 다양성은 적음.',
+ diveStars:{0:4,1:4,2:5,3:4},
+ tags:'가족경영, 소규모, 2:1 다이빙',
+ bookings:[
+  {name:'Ocean Freedom 공식 홈페이지 (공홈)',note:'A$269 + 현장 수수료 약 A$20 (EMC/항만세 등)',price:'A$269~',url:'https://www.oceanfreedom.com.au/our-tours/full-itinerary'},
+  {name:'Cairns Tours (대행사)',note:'RRP A$248 → 할인가 A$223.25',price:'A$223',url:'https://cairns-tours.com/tour/ocean-freedom'},
+  {name:'Viator (대행사)',note:'1인 기준, 실시간 변동가 (USD 표기)',price:'US$182~',url:'https://www.viator.com/tours/Cairns-and-the-Tropical-North/Great-Barrier-Reef-Luxury-Snorkel-and-Dive-Cruise-from-Cairns/d754-5364FREEDOM'}]},
+{id:'silverswift',name:'Silverswift',agency:'Quicksilver Group / Silverseries',badge:'포인트 3곳',
+ duration:'리프 체류 5시간',points:'Flynn·Milln·Thetford·Pellowe 중 3곳',rating:'4.6',ratingCount:'TripAdvisor 190~1,280여개',
+ reviewQuote:'경험 있는 스노클러라면 이 투어가 정답. 장비도 얼굴에 밀착이 잘 되는 고급 마스크를 써서 훨씬 편했다.',
+ pros:'케언즈에서 유일하게 하루에 외해 3개 리프 방문\n인증 다이버는 최대 3회 다이빙, 스노클 시간 제한 없음\n케언즈에서 가장 빠른 보트로 이동 시간 절약',
+ cons:'3사 중 공홈 기준 가격이 가장 높음(+연료 할증료 A$10 별도)\n탑승 인원에 따라 방문 사이트 수가 줄어들 수 있다는 후기 존재',
+ diveNote:'4개 외해 리프 중 그날 컨디션에 따라 3곳을 순회. 수중 플랫폼에서 바로 입수해 그물 제한이 없어 프리다이빙·자유수영에 가장 유리하지만, 인원이 많은 날은 혼잡하다는 후기가 있음.',
+ diveStars:{0:5,1:5,2:4,3:3},
+ tags:'외해 3포인트, 다이버추천, 최고속 보트',
+ bookings:[
+  {name:'Silverseries 공식 홈페이지 (공홈)',note:'A$308 + 연료 할증료 A$10 (2027.3.31까지 유효)',price:'A$308',url:'https://silverseries.com.au/silverswift'},
+  {name:'Cairns Discovery Tours (대행사)',note:'공홈과 동일 가격대 + 연료 할증료 별도',price:'A$308',url:'https://www.cairnsdiscoverytours.com/tours/silverswift-dive-snorkel-from-cairns/'},
+  {name:'Viator (대행사)',note:'1인 기준, 실시간 변동가 (USD 표기)',price:'US$216~',url:'https://www.viator.com/tours/Cairns-and-the-Tropical-North/Outer-Great-Barrier-Reef-Dive-and-Snorkel-Cruise-from-Cairns/d754-2845_QSMTEXCNS'}]},
+{id:'sunlover',name:'Sunlover Reef & Island Combo',agency:'Sunlover Reef Cruises · Moore Reef + Fitzroy Island',badge:'',
+ duration:'리프 2.5h + 섬 2.5h',points:'Moore Reef 폰툰 + Fitzroy Island',rating:'4.3',ratingCount:'Moore Reef 투어 기준 870개',
+ reviewQuote:'리프와 섬을 하루에 다 즐길 수 있어 시간 없는 여행자에게 딱 좋았다. 다만 리프 체류가 짧게 느껴졌다.',
+ pros:'그레이트 배리어 리프 유일의 워터슬라이드가 있는 고정 폰툰\n어린이 풀장·유리바닥보트·수중 관측실 등 비수영자·가족 프로그램 풍부\n리프 + 피츠로이 아일랜드(해변·트레킹)를 하루에 결합, 시간 효율적',
+ cons:'3사 중 공홈 기준 가격이 가장 높고, 두 장소로 나눠 체류시간이 짧음\n대형 고정 폰툰이라 인원이 많은 날은 혼잡하다는 후기 다수',
+ diveNote:'무어 리프는 고정 폰툰 주변 그물망 안에서 스노클링하는 구조라 안전하지만 자유수영·프리다이빙 반경은 제한적. 유료 가이드 스노클 투어(약 A$65)를 추가하면 그물 밖 더 넓은 구역까지 안내받을 수 있음.',
+ diveStars:{0:3,1:2,2:5,3:3},
+ tags:'가족여행, 리프+섬 결합, 워터슬라이드',
+ bookings:[
+  {name:'Sunlover 공식 홈페이지 (공홈)',note:'A$337 + 연료 할증료 A$10, 가족(2+2) A$859',price:'A$337',url:'https://sunlover.com.au/moore-reef-fitzroy/'},
+  {name:'Cairns Tours (대행사)',note:'가족(2성인+2아동) 패키지 할인 판매',price:'문의',url:'https://cairns-tours.com/tour/moore-reef-and-fitzroy-island-full-day-package-sunlover'},
+  {name:'Viator (대행사)',note:'1인 기준, 실시간 변동가 (USD 표기)',price:'US$242~',url:'https://www.viator.com/tours/Cairns-and-the-Tropical-North/Sunlover-Cruises-Moore-Reef-Fitzroy-Island-1-Day-Tour/d754-5851P6'}]}
+];}
+
+function deepMerge(base,inc){var out={};for(var k in base)out[k]=base[k];
+  for(var j in (inc||{})){if(inc[j]!==undefined&&inc[j]!==null)out[j]=inc[j];}return out;}
+/* 구버전 항공 데이터를 여정(왕복/편도) + 단일 구간목록(segs) 구조로 변환 */
+function migrateFlights(d){
+  var arr=d.flights;
+  if(!arr||!arr.length)return;
+  var segOf=function(f){return{id:f.id||uid(),date:f.date||'',time:f.time||'',arriveTime:f.arriveTime||'',
+    airline:f.airline||'',flightNo:f.flightNo||'',from:f.from||'',to:f.to||''};};
+  /* 가장 오래된 형태: 평탄한 항공편 배열(레그 단위) */
+  if(arr[0]&&arr[0].dep===undefined&&arr[0].segs===undefined){
+    var memoParts=[],agency='',price='',priceCur='KRW',payment='카드',got=false;
+    var segs=arr.map(function(f){
+      if(!got&&f.price){agency=f.agency||'';price=f.price;priceCur=f.priceCur||'KRW';payment=f.payment||'카드';got=true;}
+      if(f.memo)memoParts.push(f.memo);
+      return segOf(f);
+    });
+    if(!got&&arr[0]){agency=arr[0].agency||'';price=arr[0].price||'';priceCur=arr[0].priceCur||'KRW';payment=arr[0].payment||'카드';}
+    d.flights=[{id:uid(),tripType:'편도',agency:agency,price:price,priceCur:priceCur,payment:payment,
+      memo:memoParts.join(' / '),segs:segs}];
+    return;
+  }
+  /* 중간 형태: 여정 안에 dep/ret로 나뉜 구조 → 하나의 segs 목록으로 합치기 */
+  d.flights.forEach(function(j){
+    if(j.segs===undefined){
+      j.segs=(j.dep||[]).concat(j.ret||[]);
+      delete j.dep;delete j.ret;
+    }
+  });
+}
+function blankTripData(){
+  var t=defaultTripData();
+  t.flights=[];t.tourCompare=[];
+  t.meta=deepMerge(t.meta,{title:'',destination:'',currency:'AUD',rate:920,startDate:'',endDate:''});
+  return t;
+}
+function fixTripData(raw){
+  var merged=deepMerge(defaultTripData(),raw||{});
+  merged.meta=deepMerge(defaultTripData().meta,(raw&&raw.meta)||{});
+  migrateFlights(merged);
+  return merged;
+}
+function defaultAllData(){
+  var tid=uid();var trips={};trips[tid]=defaultTripData();
+  return {trips:trips,tripOrder:[tid]};
+}
+/* 구버전(단일 여행, 평탄 구조) 데이터를 {trips,tripOrder} 구조로 감싸기 */
+function wrapAsMultiTrip(raw){
+  var tid=uid();var trips={};trips[tid]=fixTripData(raw);
+  return {trips:trips,tripOrder:[tid]};
+}
+function normalizeAllData(all){
+  if(!all||!all.trips)return null;
+  var order=(all.tripOrder&&all.tripOrder.length)?all.tripOrder.slice():Object.keys(all.trips);
+  var fixed={};
+  order.forEach(function(tid){
+    var t=all.trips[tid];
+    if(!t)return;
+    fixed[tid]=fixTripData(t);
+  });
+  order=order.filter(function(tid){return fixed[tid];});
+  if(!order.length)return null;
+  return {trips:fixed,tripOrder:order};
+}
+function loadData(){
+  try{
+    var raw=localStorage.getItem(STORAGE_KEY);
+    if(!raw)return defaultAllData();
+    var parsed=JSON.parse(raw);
+    var all=parsed&&parsed.trips?normalizeAllData(parsed):wrapAsMultiTrip(parsed);
+    return all||defaultAllData();
+  }catch(e){console.error(e);return defaultAllData();}
+}
+function saveData(d,key){
+  try{
+    d.meta=d.meta||{};d.meta.updatedAt=new Date().toISOString();
+    localStorage.setItem(STORAGE_KEY,JSON.stringify(AllData));
+    fbQueueSync(key||curSection);
+    toast();return true;
+  }catch(e){console.error(e);return false;}
+}
+var _tt=null;
+function toast(){var t=document.getElementById('toast');if(!t)return;
+  t.classList.add('show');clearTimeout(_tt);_tt=setTimeout(function(){t.classList.remove('show');},1000);}
+function exportData(){
+  var blob=new Blob([JSON.stringify(AllData,null,2)],{type:'application/json'});
+  var url=URL.createObjectURL(blob);var a=document.createElement('a');
+  a.href=url;a.download='trip-data-'+new Date().toISOString().slice(0,16).replace(/[-:T]/g,'')+'.json';
+  document.body.appendChild(a);a.click();a.remove();URL.revokeObjectURL(url);
+}
+function importFile(f,cb){
+  var r=new FileReader();
+  r.onload=function(e){
+    try{
+      var parsed=JSON.parse(e.target.result);
+      var all=parsed&&parsed.trips?normalizeAllData(parsed):wrapAsMultiTrip(parsed);
+      if(!all)throw new Error('빈 데이터');
+      AllData=all;
+      if(!AllData.trips[activeTripId])activeTripId=AllData.tripOrder[0];
+      D=AllData.trips[activeTripId];
+      localStorage.setItem(STORAGE_KEY,JSON.stringify(AllData));
+      try{localStorage.setItem(ACTIVE_KEY,activeTripId);}catch(err){}
+      fbQueueSync('*ALL*');
+      if(cb)cb();
+    }catch(err){alert('JSON을 읽을 수 없습니다: '+err.message);}
+  };
+  r.readAsText(f,'utf-8');
+}
+function fmtLocalDate(d){
+  var y=d.getFullYear(),m=String(d.getMonth()+1).padStart(2,'0'),dd=String(d.getDate()).padStart(2,'0');
+  return y+'-'+m+'-'+dd;
+}
+function dateRange(s,e){var out=[];if(!s||!e)return out;
+  var d=new Date(s+'T00:00:00'),en=new Date(e+'T00:00:00');
+  if(isNaN(d)||isNaN(en)||d>en)return out;
+  while(d<=en){out.push(fmtLocalDate(d));d.setDate(d.getDate()+1);}return out;}
+function wk(s){return ['일','월','화','수','목','금','토'][new Date(s+'T00:00:00').getDay()];}
+function mmdd(s){return s?s.slice(5).replace('-','.'):'';}
+
+/* ===== Firebase 실시간 동기화 ===== */
+var firebaseConfig={
+  apiKey:"AIzaSyCuUOCWxyb0HgsoQKgRyR33nQwB-nk7lzw",
+  authDomain:"hyunsfamily-travel.firebaseapp.com",
+  databaseURL:"https://hyunsfamily-travel-default-rtdb.asia-southeast1.firebasedatabase.app",
+  projectId:"hyunsfamily-travel",
+  storageBucket:"hyunsfamily-travel.firebasestorage.app",
+  messagingSenderId:"813263924653",
+  appId:"1:813263924653:web:bd562f1e5ad0ed97678524"
+};
+var curSection=null,curTab=null;
+/* 날짜 탭(일정·지출노트) 선택 상태 — 동기화 대상(D.meta)과 분리된 로컬 전용 상태.
+   D.meta 안에 두면 원격 동기화 시 덮어써져 편집 후 첫 날짜로 되돌아가는 문제가 있었음. */
+var uiTabState={};
+function getUiTab(kind,dates,fallback){
+  var key=activeTripId+'::'+kind;
+  var v=uiTabState[key];
+  if(!v||dates.indexOf(v)<0)v=(fallback!==undefined)?fallback:dates[0];
+  return v;
+}
+function setUiTab(kind,date){
+  uiTabState[activeTripId+'::'+kind]=date;
+}
+var fbRef=null,fbStatus='connecting',fbWriteTimers={},pendingRerender=false;
+
+function isEditableFocus(){
+  var a=document.activeElement;
+  if(!a)return false;
+  var tag=a.tagName;
+  return tag==='INPUT'||tag==='SELECT'||tag==='TEXTAREA';
+}
+function rerenderNow(){
+  if(curTab&&curTab.r)curTab.r(document.getElementById('content'));
+  if(typeof tripBarEl!=='undefined'&&tripBarEl)buildTripBar(tripBarEl);
+  if(typeof bar!=='undefined'&&bar&&curTab)buildAppBar(bar);
+  else updateSyncPill();
+}
+function scheduleRerender(){
+  if(isEditableFocus()){pendingRerender=true;return;}
+  rerenderNow();
+}
+document.addEventListener('focusout',function(){
+  if(pendingRerender){pendingRerender=false;setTimeout(rerenderNow,60);}
+},true);
+
+function fbInit(){
+  try{
+    if(typeof firebase==='undefined'){fbStatus='error';updateSyncPill();return;}
+    firebase.initializeApp(firebaseConfig);
+    fbRef=firebase.database().ref('trip');
+    fbRef.on('value',onFbValue,function(err){fbStatus='error';console.error('firebase',err);updateSyncPill();});
+  }catch(e){console.error(e);fbStatus='error';updateSyncPill();}
+}
+function onFbValue(snap){
+  var remote=snap.val();
+  fbStatus='synced';
+  if(!remote){
+    fbRef.set(AllData).catch(function(e){console.error(e);});
+    updateSyncPill();return;
+  }
+  if(!remote.trips){
+    /* 구버전(단일 여행) 데이터가 서버에 남아있음 → 서버 내용을 보존한 채 다중 여행 구조로 감싸서 다시 저장 */
+    var wrapped=wrapAsMultiTrip(remote);
+    AllData=wrapped;
+    activeTripId=wrapped.tripOrder[0];
+    D=AllData.trips[activeTripId];
+    try{localStorage.setItem(ACTIVE_KEY,activeTripId);}catch(e){}
+    localStorage.setItem(STORAGE_KEY,JSON.stringify(AllData));
+    fbRef.set(AllData).catch(function(e){console.error(e);});
+    scheduleRerender();
+    return;
+  }
+  var changed=false;
+  var order=(remote.tripOrder&&remote.tripOrder.length)?remote.tripOrder:Object.keys(remote.trips);
+  var newTrips={};
+  order.forEach(function(tid){
+    var rt=remote.trips[tid];
+    if(!rt)return;
+    var lt=AllData.trips[tid];
+    if(!lt){
+      newTrips[tid]=fixTripData(rt);
+      changed=true;
+      return;
+    }
+    for(var k in rt){
+      var tk=tid+'::'+k;
+      if(fbWriteTimers[tk])continue;
+      if(JSON.stringify(rt[k])!==JSON.stringify(lt[k])){lt[k]=rt[k];changed=true;}
+    }
+    if(!fbWriteTimers[tid+'::flights'])migrateFlights(lt);
+    newTrips[tid]=lt;
+  });
+  if(!order.length)return;
+  AllData.trips=newTrips;
+  if(AllData.tripOrder.join(',')!==order.join(',')){AllData.tripOrder=order;changed=true;}
+  if(!AllData.trips[activeTripId]){
+    activeTripId=AllData.tripOrder[0];
+    try{localStorage.setItem(ACTIVE_KEY,activeTripId);}catch(e){}
+    changed=true;
+  }
+  D=AllData.trips[activeTripId];
+  if(changed){
+    localStorage.setItem(STORAGE_KEY,JSON.stringify(AllData));
+    scheduleRerender();
+  }else{updateSyncPill();}
+}
+function fbQueueSync(key){
+  if(!fbRef)return;
+  if(key==='tripOrder'){
+    fbRef.child('tripOrder').set(AllData.tripOrder).catch(function(e){console.error(e);});
+    return;
+  }
+  if(!key||key==='*ALL*'){fbRef.set(AllData).catch(function(e){console.error(e);});return;}
+  var tk=activeTripId+'::'+key;
+  if(fbWriteTimers[tk])clearTimeout(fbWriteTimers[tk]);
+  fbWriteTimers[tk]=setTimeout(function(){
+    delete fbWriteTimers[tk];
+    var upd={};upd[key]=D[key];
+    fbRef.child('trips/'+activeTripId).update(upd).catch(function(e){console.error('fb sync',e);});
+  },500);
+}
+function fbPushNewTrip(tid){
+  if(!fbRef)return;
+  fbRef.child('trips/'+tid).set(AllData.trips[tid]).catch(function(e){console.error(e);});
+  fbRef.child('tripOrder').set(AllData.tripOrder).catch(function(e){console.error(e);});
+}
+function fbDeleteTrip(tid){
+  if(!fbRef)return;
+  fbRef.child('trips/'+tid).remove().catch(function(e){console.error(e);});
+  fbRef.child('tripOrder').set(AllData.tripOrder).catch(function(e){console.error(e);});
+}
+function updateSyncPill(){
+  var pill=document.getElementById('syncPill');
+  if(!pill)return;
+  if(fbStatus==='synced')pill.textContent='🟢 Connected';
+  else if(fbStatus==='error')pill.textContent='🔴 Disconnected — 새로고침 해보세요';
+  else pill.textContent='🟡 Connecting…';
+}
+
+/* ===== 여행(트립) 관리 ===== */
+function switchTrip(tid){
+  if(!AllData.trips[tid])return false;
+  activeTripId=tid;
+  try{localStorage.setItem(ACTIVE_KEY,tid);}catch(e){}
+  D=AllData.trips[tid];
+  return true;
+}
+function addTrip(title){
+  var tid=uid();
+  AllData.trips[tid]=blankTripData();
+  AllData.trips[tid].meta.title=title||'제목 없는 여행';
+  AllData.tripOrder.push(tid);
+  localStorage.setItem(STORAGE_KEY,JSON.stringify(AllData));
+  fbPushNewTrip(tid);
+  switchTrip(tid);
+  return tid;
+}
+function deleteTripById(tid){
+  if(AllData.tripOrder.length<=1)return false;
+  delete AllData.trips[tid];
+  AllData.tripOrder=AllData.tripOrder.filter(function(x){return x!==tid;});
+  if(activeTripId===tid)switchTrip(AllData.tripOrder[0]);
+  localStorage.setItem(STORAGE_KEY,JSON.stringify(AllData));
+  fbDeleteTrip(tid);
+  return true;
+}
+function renameTrip(tid,title){
+  if(!AllData.trips[tid])return;
+  AllData.trips[tid].meta.title=title;
+  AllData.trips[tid].meta.updatedAt=new Date().toISOString();
+  localStorage.setItem(STORAGE_KEY,JSON.stringify(AllData));
+  if(fbRef)fbRef.child('trips/'+tid+'/meta').update({title:title}).catch(function(e){console.error(e);});
+}
+
+/* ===== DOM 헬퍼 ===== */
+function el(tag,cls,txt){var e=document.createElement(tag);if(cls)e.className=cls;
+  if(txt!==undefined)e.textContent=txt;return e;}
+function stars(n){var s='';n=Number(n)||0;for(var i=1;i<=5;i++)s+=(i<=n?'★':'☆');return s;}
+
+/* 표 셀: 입력 */
+function cellInput(td,obj,key,type,ph,onDone){
+  var i=el('input');i.type=type||'text';i.value=obj[key]==null?'':obj[key];
+  if(ph)i.placeholder=ph;
+  i.addEventListener('input',function(){obj[key]=i.value;if(onDone)onDone(false);});
+  i.addEventListener('change',function(){obj[key]=i.value;if(onDone)onDone(true);});
+  td.appendChild(i);return i;
+}
+function cellSelect(td,obj,key,opts,onDone){
+  var s=el('select');
+  opts.forEach(function(o){var n=el('option',null,o);n.value=o;
+    if((obj[key]||'')===o)n.selected=true;s.appendChild(n);});
+  s.addEventListener('change',function(){obj[key]=s.value;if(onDone)onDone(true);});
+  td.appendChild(s);return s;
+}
+function autoGrow(t){t.style.height='auto';t.style.height=t.scrollHeight+'px';}
+function cellArea(td,obj,key,ph,onDone){
+  var t=el('textarea');t.rows=1;t.value=obj[key]||'';if(ph)t.placeholder=ph;
+  t.addEventListener('input',function(){obj[key]=t.value;autoGrow(t);if(onDone)onDone(false);});
+  td.appendChild(t);
+  setTimeout(function(){autoGrow(t);},0);
+  return t;
+}
+/* 표 셀: 금액 + 통화 풀다운 */
+function cellMoney(td,obj,D,onDone){
+  td.className='num';
+  var box=el('div','money-cell');
+  var i=el('input');i.type='number';i.inputMode='decimal';i.placeholder='0';
+  i.value=obj.price==null?'':obj.price;
+  i.addEventListener('input',function(){obj.price=i.value;if(onDone)onDone(false);});
+  i.addEventListener('change',function(){obj.price=i.value;if(onDone)onDone(true);});
+  var s=el('select');
+  var lc=localCur(D);
+  var opts=(lc==='KRW')?['KRW']:[lc,'KRW'];
+  if(!obj.priceCur)obj.priceCur=lc;
+  if(opts.indexOf(obj.priceCur)<0)opts.push(obj.priceCur);
+  opts.forEach(function(c){var n=el('option',null,c);n.value=c;
+    if(obj.priceCur===c)n.selected=true;s.appendChild(n);});
+  s.addEventListener('change',function(){obj.priceCur=s.value;if(onDone)onDone(true);});
+  box.appendChild(i);box.appendChild(s);td.appendChild(box);
+}
+function delCell(tr,onClick){
+  var td=el('td','del');var b=el('button',null,'✕');
+  b.onclick=onClick;td.appendChild(b);tr.appendChild(td);
+}
+function mkTable(cols){
+  var wrap=el('div','tbl-wrap');
+  var sc=el('div','tbl-scroll');
+  var t=el('table','grid');
+  var thead=el('thead');var tr=el('tr');
+  cols.forEach(function(c){
+    var th=el('th',null,c.t);
+    if(c.w)th.style.minWidth=c.w+'px';
+    tr.appendChild(th);
+  });
+  thead.appendChild(tr);t.appendChild(thead);
+  var tb=el('tbody');t.appendChild(tb);
+  sc.appendChild(t);wrap.appendChild(sc);
+  return {wrap:wrap,tbody:tb,table:t,scroll:sc};
+}
+function scrollHint(wrap,txt){
+  wrap.appendChild(el('div','scroll-hint',txt||'← 좌우로 밀어서 나머지 항목 보기'));
+}
+function totalBar(label,main,sub){
+  var b=el('div','total-bar');b.appendChild(el('div','l',label));
+  var v=el('div','v');v.textContent=main;
+  if(sub){var s=el('small');s.textContent=sub;v.appendChild(s);}
+  b.appendChild(v);return b;
+}
+function secHead(title,count){
+  var h=el('div','sec-head');h.appendChild(el('div','sec-title',title));
+  if(count)h.appendChild(el('div','sec-count',count));return h;}
+function hintBox(html){var d=el('div','hint');d.innerHTML=html;return d;}
+
+/* ===== 상단바 ===== */
+var ICON_DOWNLOAD='<svg viewBox="0 0 24 24" fill="none"><path d="M12 3V15M7 10L12 15L17 10" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/><path d="M5 19H19" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>';
+var ICON_UPLOAD='<svg viewBox="0 0 24 24" fill="none"><path d="M12 15V3M7 8L12 3L17 8" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/><path d="M5 19H19" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>';
+var ICON_PLANE='<svg class="tb-icon" viewBox="0 0 24 24" fill="none"><path d="M21.5 2.5L2.5 10.2L10.8 13.2L13.8 21.5L21.5 2.5Z" fill="currentColor"/><path d="M10.8 13.2L21.5 2.5L15.2 16.8L13.8 21.5L10.8 13.2Z" fill="currentColor" fill-opacity=".55"/></svg>';
+function buildAppBar(host){
+  host.innerHTML=
+   '<div class="appbar"><div class="appbar-row">'+
+     '<div><div class="sync-pill" id="syncPill">Connecting…</div></div>'+
+     '<div class="appbar-actions">'+
+       '<button class="ab-btn" id="bExp" title="내보내기">'+ICON_DOWNLOAD+'</button>'+
+       '<button class="ab-btn" id="bImp" title="가져오기">'+ICON_UPLOAD+'</button>'+
+       '<input type="file" id="fImp" accept="application/json" hidden></div>'+
+   '</div></div>';
+  host.querySelector('#bExp').onclick=exportData;
+  host.querySelector('#fImp').onchange=function(e){var f=e.target.files[0];if(f)importFile(f,function(){location.reload();});};
+  host.querySelector('#bImp').onclick=function(){host.querySelector('#fImp').click();};
+  updateSyncPill();
+}
+
+/* ===== 여행 선택 바 ===== */
+function buildTripBar(host){
+  host.innerHTML='';
+  var bar=el('div','tripbar');
+  var nameEl=el('div','tripbar-name');
+  nameEl.innerHTML=ICON_PLANE+'<span>'+(D.meta.title||'제목 없는 여행')+'</span>';
+  bar.appendChild(nameEl);
+  bar.appendChild(el('div','tripbar-chev','여행 변경 ▾'));
+  bar.onclick=openTripSwitcher;
+  host.appendChild(bar);
+}
+function openTripSwitcher(){
+  var backdrop=el('div','tl-backdrop');
+  var ov=el('div','tl-editor');
+  ov.appendChild(el('div','tl-editor-title','여행 선택'));
+
+  var list=el('div','trip-list');
+  AllData.tripOrder.forEach(function(tid){
+    var t=AllData.trips[tid];if(!t)return;
+    var row=el('div','trip-row'+(tid===activeTripId?' active':''));
+    var nameInp=el('input','trip-row-name');nameInp.type='text';
+    nameInp.value=t.meta.title||'';nameInp.placeholder='제목 없는 여행';
+    nameInp.addEventListener('click',function(e){e.stopPropagation();});
+    nameInp.addEventListener('change',function(){renameTrip(tid,nameInp.value||'제목 없는 여행');});
+    row.appendChild(nameInp);
+    var selBtn=el('button','trip-row-select',tid===activeTripId?'보는 중':'선택');
+    if(tid===activeTripId)selBtn.disabled=true;
+    selBtn.onclick=function(e){
+      e.stopPropagation();
+      switchTrip(tid);
+      document.body.removeChild(backdrop);
+      show((location.hash||'').replace('#','')||'summary');
+    };
+    row.appendChild(selBtn);
+    var delBtn=el('button','trip-row-del','🗑');
+    delBtn.onclick=function(e){
+      e.stopPropagation();
+      if(AllData.tripOrder.length<=1){alert('마지막 남은 여행은 삭제할 수 없어요.');return;}
+      if(!confirm('"'+(t.meta.title||'제목 없는 여행')+'" 여행을 삭제할까요? 되돌릴 수 없습니다.'))return;
+      var wasActive=(tid===activeTripId);
+      deleteTripById(tid);
+      document.body.removeChild(backdrop);
+      if(wasActive)show((location.hash||'').replace('#','')||'summary');
+      else openTripSwitcher();
+    };
+    row.appendChild(delBtn);
+    list.appendChild(row);
+  });
+  ov.appendChild(list);
+
+  var addRow=el('div','trip-add-row');
+  var inp=el('input');inp.type='text';inp.placeholder='새 여행 이름 (예: 발리 가족여행)';
+  addRow.appendChild(inp);
+  var addBtn=el('button',null,'+ 추가');
+  addBtn.onclick=function(){
+    var title=inp.value.trim();
+    if(!title){alert('여행 이름을 입력해주세요.');return;}
+    addTrip(title);
+    document.body.removeChild(backdrop);
+    show('summary');
+  };
+  addRow.appendChild(addBtn);
+  ov.appendChild(addRow);
+
+  var closeBtn=el('button','btn-add ghost','닫기');
+  closeBtn.style.marginTop='10px';
+  closeBtn.onclick=function(){document.body.removeChild(backdrop);};
+  ov.appendChild(closeBtn);
+
+  backdrop.appendChild(ov);
+  backdrop.addEventListener('click',function(e){if(e.target===backdrop)document.body.removeChild(backdrop);});
+  document.body.appendChild(backdrop);
+}
+
+/* ===== 여행 설정 바 (여행지 / 통화 / 환율 / 기간) ===== */
+var setbarOpen=true;
+function setupBar(root,D,onRe){
+  var box=el('div','setbar');
+
+  var head=el('div','setbar-head');
+  var titleWrap=el('div','setbar-title');
+  titleWrap.appendChild(document.createTextNode('여행 설정'));
+  var sumParts=[D.meta.destination||'여행지 미입력',localCur(D)];
+  if(D.meta.startDate)sumParts.push(mmdd(D.meta.startDate)+(D.meta.endDate?'~'+mmdd(D.meta.endDate):''));
+  titleWrap.appendChild(el('span','setbar-summary',sumParts.join(' · ')));
+  head.appendChild(titleWrap);
+  var swLabel=el('label','ios-switch');
+  var swInp=el('input');swInp.type='checkbox';swInp.checked=setbarOpen;
+  swLabel.appendChild(swInp);swLabel.appendChild(el('span','slider'));
+  head.appendChild(swLabel);
+  box.appendChild(head);
+
+  var body=el('div','setbar-body'+(setbarOpen?'':' collapsed'));
+  var g=el('div','setgrid');
+
+  function sf(label,node){
+    var w=el('div','sf');w.appendChild(el('label',null,label));w.appendChild(node);return w;
+  }
+  var dest=el('input');dest.type='text';dest.placeholder='예: 호주 케언즈';
+  dest.value=D.meta.destination||'';
+  dest.addEventListener('input',function(){D.meta.destination=dest.value;saveData(D,'meta');});
+  dest.addEventListener('change',function(){
+    var g2=guessCurrency(dest.value);
+    if(g2&&g2!==D.meta.currency){
+      D.meta.currency=g2;D.meta.rate=curInfo(g2).rate;
+    }
+    saveData(D,'meta');onRe();
+  });
+
+  var cur=el('select');
+  CURRENCIES.forEach(function(c){
+    var o=el('option',null,c.code+' · '+c.name);o.value=c.code;
+    if(D.meta.currency===c.code)o.selected=true;cur.appendChild(o);
+  });
+  cur.addEventListener('change',function(){
+    D.meta.currency=cur.value;D.meta.rate=curInfo(cur.value).rate;saveData(D,'meta');onRe();
+  });
+
+  var rate=el('input');rate.type='number';rate.step='0.001';rate.value=localRate(D);
+  rate.addEventListener('change',function(){D.meta.rate=rate.value;saveData(D,'meta');onRe();});
+
+  var sd=el('input');sd.type='date';sd.value=D.meta.startDate||'';
+  sd.addEventListener('change',function(){D.meta.startDate=sd.value;saveData(D,'meta');onRe();});
+  var ed=el('input');ed.type='date';ed.value=D.meta.endDate||'';
+  ed.addEventListener('change',function(){D.meta.endDate=ed.value;saveData(D,'meta');onRe();});
+
+  g.appendChild(sf('여행지',dest));
+  g.appendChild(sf('현지 통화',cur));
+  g.appendChild(sf('환율 (1'+localCur(D)+'=원)',rate));
+  g.appendChild(sf('시작일',sd));
+  g.appendChild(sf('종료일',ed));
+  body.appendChild(g);
+  body.appendChild(el('div','rate-note',
+    '금액은 기본 '+localCur(D)+'로 입력됩니다. 각 금액 칸 오른쪽 풀다운에서 KRW로 바꿀 수 있어요.'));
+  box.appendChild(body);
+
+  swInp.addEventListener('change',function(){
+    setbarOpen=swInp.checked;
+    body.classList.toggle('collapsed',!setbarOpen);
+  });
+  return box;
+}
+
+function dayLabel(date,i){return 'D'+(i+1)+'\n'+mmdd(date);}
+
+/* ===== 0. SUMMARY ===== */
+function tabSummary(root,D){
+  var re=function(){tabSummary(root,D);};
+  root.innerHTML='';
+  root.appendChild(setupBar(root,D,re));
+
+  var dates=dateRange(D.meta.startDate,D.meta.endDate);
+  root.appendChild(secHead('전체 요약',dates.length?dates.length+'일':''));
+  if(!dates.length){root.appendChild(el('div','empty','시작일과 종료일을 입력해주세요.'));return;}
+  root.appendChild(hintBox('1~6번 탭 내용이 날짜별로 자동 집계됩니다. <b>요약·비고</b>는 표에서 바로 입력하세요.'));
+
+  var T=mkTable([{t:'일정',w:52},{t:'요약',w:130},{t:'호텔',w:100},{t:'이동',w:130},{t:'사용금액',w:76},{t:'비고',w:160}]);
+  var grandK=0;
+  D.summaryNotes=D.summaryNotes||{};
+
+  dates.forEach(function(date,i){
+    var itin=(D.itinerary||[]).filter(function(x){return x.date===date;})
+      .sort(function(a,b){return (a.time||'').localeCompare(b.time||'');})
+      .map(function(x){return (x.time?x.time+' ':'')+(x.activity||'');}).filter(Boolean);
+    var hotel=(D.hotels||{})[date];
+    var moves=[];
+    (D.flights||[]).forEach(function(j){
+      (j.segs||[]).forEach(function(s){
+        if(s.date===date)moves.push('✈'+(s.from||'')+'→'+(s.to||''));
+      });
+    });
+    (D.rentalcar||[]).forEach(function(r){if(r.date===date)moves.push('🚗'+(r.company||''));});
+    (D.tours||[]).forEach(function(t){if(t.date===date)moves.push('🎫'+(t.tourName||''));});
+
+    var dayK=0,dayLocal=0;
+    (D.expenses||[]).forEach(function(e){
+      if(e.date!==date)return;
+      dayK+=toKRW(e.price,e.priceCur,D);
+      if(e.priceCur!=='KRW')dayLocal+=Number(e.price)||0;
+    });
+    grandK+=dayK;
+
+    var N=D.summaryNotes[date]=D.summaryNotes[date]||{summary:'',memo:''};
+    var tr=el('tr');
+    var d0=el('td','rowhead');d0.style.whiteSpace='pre-line';d0.textContent=dayLabel(date,i)+'\n('+wk(date)+')';
+    tr.appendChild(d0);
+
+    var c1=el('td');cellArea(c1,N,'summary',itin.join(' / ')||'요약',function(){saveData(D);});tr.appendChild(c1);
+    var c2=el('td');c2.appendChild(el('div',null,''));
+    c2.firstChild.style.padding='8px 7px';c2.firstChild.style.fontSize='12.5px';
+    c2.firstChild.textContent=hotel&&hotel.name?hotel.name:'-';tr.appendChild(c2);
+    var c3=el('td');var mv=el('div');mv.style.padding='8px 7px';mv.style.fontSize='11.5px';
+    mv.style.whiteSpace='pre-line';mv.textContent=moves.length?moves.join('\n'):'-';c3.appendChild(mv);tr.appendChild(c3);
+    var c4=el('td','num');var mo=el('div');mo.style.padding='8px 7px';mo.style.fontSize='12px';
+    mo.style.textAlign='right';mo.style.fontFamily='var(--mono)';
+    mo.textContent=dayK?money(dayK)+'원':'-';c4.appendChild(mo);tr.appendChild(c4);
+    var c5=el('td');cellArea(c5,N,'memo','비고',function(){saveData(D);});tr.appendChild(c5);
+
+    T.tbody.appendChild(tr);
+  });
+  root.appendChild(T.wrap);
+  scrollHint(T.wrap);
+  root.appendChild(totalBar('전체 사용금액',money(grandK)+'원','환율 1'+localCur(D)+'='+localRate(D)+'원 기준 환산'));
+}
+
+/* ===== 1. 일정 ===== */
+var TL_PX=60; /* 1시간 = 60px (1분 = 1px) */
+function timeToMin(t){if(!t)return null;var p=String(t).split(':');var h=+p[0],m=+p[1]||0;
+  if(isNaN(h))return null;return h*60+m;}
+function minToTime(m){m=Math.max(0,Math.min(1439,Math.round(m)));
+  var h=Math.floor(m/60),mm=m%60;
+  return (h<10?'0':'')+h+':'+(mm<10?'0':'')+mm;}
+
+function tabItinerary(root,D){
+  var re=function(){tabItinerary(root,D);};
+  root.innerHTML='';
+  root.appendChild(setupBar(root,D,re));
+
+  var dates=dateRange(D.meta.startDate,D.meta.endDate);
+  root.appendChild(secHead('타임테이블',dates.length?dates.length+'일':''));
+  root.appendChild(hintBox('빈 시간대를 <b>더블탭(더블클릭)</b>하면 새 일정이 생깁니다. 블록 아래쪽 손잡이(⋮⋮)를 <b>드래그</b>하면 시간 범위가 조절되고, 블록을 <b>더블탭</b>하면 분 단위로 정확히 수정할 수 있어요.'));
+  if(!dates.length){root.appendChild(el('div','empty','기간을 입력하면 날짜별 타임테이블이 만들어집니다.'));return;}
+
+  var selDate=getUiTab('itin',dates);
+
+  var pills=el('div','daypills');
+  dates.forEach(function(date,i){
+    var b=el('button','daypill'+(date===selDate?' active':''),mmdd(date)+' ('+wk(date)+')');
+    b.onclick=function(){setUiTab('itin',date);re();};
+    pills.appendChild(b);
+  });
+  root.appendChild(pills);
+
+  var items=D.itinerary.filter(function(x){return x.date===selDate;});
+
+  var undated=items.filter(function(x){return timeToMin(x.time)==null;});
+  if(undated.length){
+    var uw=el('div','tl-undated');
+    uw.appendChild(el('div','tl-undated-label','⏱ 시간 미정 (버튼으로 시간 지정)'));
+    undated.forEach(function(item){
+      var row=el('div','tl-undated-item');
+      var txt=el('input');txt.type='text';txt.placeholder='내용';txt.value=item.activity||'';
+      txt.addEventListener('input',function(){item.activity=txt.value;saveData(D);});
+      row.appendChild(txt);
+      var setT=el('button',null,'시간 지정');
+      setT.onclick=function(){openTimeEditor(D,item,re);};
+      row.appendChild(setT);
+      var del=el('button',null,'✕');
+      del.onclick=function(){var q=D.itinerary.indexOf(item);if(q>-1){D.itinerary.splice(q,1);saveData(D);re();}};
+      row.appendChild(del);
+      uw.appendChild(row);
+    });
+    root.appendChild(uw);
+  }
+
+  root.appendChild(buildTimeline(D,selDate,items,re));
+}
+
+function buildTimeline(D,date,items,re){
+  var wrap=el('div','tl-wrap');
+  var scroll=el('div','tl-scroll');
+  var inner=el('div','tl-inner');
+  inner.style.height=(24*TL_PX)+'px';
+
+  for(var h=0;h<24;h++){
+    var top=h*TL_PX;
+    var line=el('div','tl-hour-line');line.style.top=top+'px';
+    inner.appendChild(line);
+    var lab=el('div','tl-hour-label',(h<10?'0':'')+h+':00');lab.style.top=(top-6)+'px';
+    inner.appendChild(lab);
+  }
+
+  items.forEach(function(item){
+    var st=timeToMin(item.time);
+    if(st==null)return;
+    var en=item.endTime!=null&&item.endTime!==''?timeToMin(item.endTime):st+30;
+    if(en==null||en<=st)en=st+15;
+    inner.appendChild(buildBlock(D,item,st,en,re));
+  });
+
+  inner.addEventListener('dblclick',function(e){
+    if(e.target!==inner)return;
+    var rect=inner.getBoundingClientRect();
+    var y=e.clientY-rect.top;
+    var st=Math.max(0,Math.min(1410,Math.round(y/15)*15));
+    var en=st+30;
+    var it={id:uid(),date:date,time:minToTime(st),endTime:minToTime(en),activity:'',memo:''};
+    D.itinerary.push(it);
+    saveData(D);re();
+    setTimeout(function(){
+      var box=document.querySelector('[data-iid="'+it.id+'"] .tl-activity');
+      if(box)box.focus();
+    },60);
+  });
+
+  scroll.appendChild(inner);
+  wrap.appendChild(scroll);
+  setTimeout(function(){scroll.scrollTop=Math.max(0,6*TL_PX-30);},0);
+  return wrap;
+}
+
+function buildBlock(D,item,st,en,re){
+  var blk=el('div','tl-item');
+  blk.setAttribute('data-iid',item.id);
+  blk.style.top=st+'px';
+  blk.style.height=Math.max(24,en-st)+'px';
+
+  var timeLbl=el('div','tl-time',minToTime(st)+'–'+minToTime(en));
+  blk.appendChild(timeLbl);
+
+  var act=el('input','tl-activity');act.type='text';act.placeholder='내용 입력';act.value=item.activity||'';
+  act.addEventListener('input',function(){item.activity=act.value;saveData(D);});
+  act.addEventListener('click',function(e){e.stopPropagation();});
+  blk.appendChild(act);
+
+  var del=el('button','tl-del','✕');
+  del.onclick=function(e){e.stopPropagation();var q=D.itinerary.indexOf(item);if(q>-1){D.itinerary.splice(q,1);saveData(D);re();}};
+  blk.appendChild(del);
+
+  var handle=el('div','tl-handle','⋮⋮');
+  blk.appendChild(handle);
+
+  var dragging=false,startY=0,startEn=en,pendingEn=en;
+  handle.addEventListener('pointerdown',function(e){
+    e.stopPropagation();e.preventDefault();
+    dragging=true;startY=e.clientY;startEn=en;pendingEn=en;
+    try{handle.setPointerCapture(e.pointerId);}catch(err){}
+  });
+  handle.addEventListener('pointermove',function(e){
+    if(!dragging)return;
+    var dy=e.clientY-startY;
+    var newEn=Math.round((startEn+dy)/5)*5;
+    newEn=Math.max(st+15,Math.min(1440,newEn));
+    pendingEn=newEn;
+    blk.style.height=(newEn-st)+'px';
+    timeLbl.textContent=minToTime(st)+'–'+minToTime(newEn);
+  });
+  function finishDrag(){
+    if(!dragging)return;
+    dragging=false;
+    item.endTime=minToTime(pendingEn);
+    saveData(D);re();
+  }
+  handle.addEventListener('pointerup',finishDrag);
+  handle.addEventListener('pointercancel',finishDrag);
+
+  blk.addEventListener('dblclick',function(e){e.stopPropagation();openTimeEditor(D,item,re);});
+
+  return blk;
+}
+
+function openTimeEditor(D,item,re){
+  var backdrop=el('div','tl-backdrop');
+  var ov=el('div','tl-editor');
+  var st=timeToMin(item.time);if(st==null)st=8*60;
+  var en=item.endTime!=null&&item.endTime!==''?timeToMin(item.endTime):st+30;
+  if(en==null||en<=st)en=st+30;
+
+  function numSel(max,val,onchange){
+    var s=el('select');
+    for(var i=0;i<max;i++){var o=el('option',null,(i<10?'0':'')+i);o.value=i;if(i===val)o.selected=true;s.appendChild(o);}
+    s.addEventListener('change',function(){onchange(Number(s.value));});
+    return s;
+  }
+
+  ov.appendChild(el('div','tl-editor-title','시간 · 메모 수정'));
+
+  var row1=el('div','tl-editor-row');
+  row1.appendChild(el('span',null,'시작'));
+  row1.appendChild(numSel(24,Math.floor(st/60),function(v){st=v*60+(st%60);}));
+  row1.appendChild(el('span',null,':'));
+  row1.appendChild(numSel(60,st%60,function(v){st=Math.floor(st/60)*60+v;}));
+  ov.appendChild(row1);
+
+  var row2=el('div','tl-editor-row');
+  row2.appendChild(el('span',null,'종료'));
+  row2.appendChild(numSel(25,Math.floor(en/60),function(v){en=v*60+(en%60);}));
+  row2.appendChild(el('span',null,':'));
+  row2.appendChild(numSel(60,en%60,function(v){en=Math.floor(en/60)*60+v;}));
+  ov.appendChild(row2);
+
+  var actInp=el('input');actInp.type='text';actInp.placeholder='내용';actInp.value=item.activity||'';
+  actInp.style.cssText='width:100%;border:1px solid var(--line);border-radius:7px;padding:8px 9px;font-size:13px;margin-bottom:10px;';
+  ov.appendChild(actInp);
+
+  var memoInp=el('textarea');memoInp.rows=2;memoInp.placeholder='메모';memoInp.value=item.memo||'';
+  ov.appendChild(memoInp);
+
+  var btnRow=el('div','tl-editor-btns');
+  var saveBtn=el('button',null,'저장');
+  saveBtn.onclick=function(){
+    if(en<=st)en=st+15;
+    item.time=minToTime(st);item.endTime=minToTime(en);
+    item.activity=actInp.value;item.memo=memoInp.value;
+    saveData(D);document.body.removeChild(backdrop);re();
+  };
+  var cancelBtn=el('button',null,'취소');
+  cancelBtn.onclick=function(){document.body.removeChild(backdrop);};
+  btnRow.appendChild(cancelBtn);btnRow.appendChild(saveBtn);
+  ov.appendChild(btnRow);
+
+  backdrop.appendChild(ov);
+  backdrop.addEventListener('click',function(e){if(e.target===backdrop)document.body.removeChild(backdrop);});
+  document.body.appendChild(backdrop);
+}
+
+/* ===== 2. 항공 ===== */
+function blankSeg(){return{id:uid(),date:'',time:'',arriveTime:'',airline:'',flightNo:'',from:'',to:''};}
+function tabFlights(root,D){
+  var re=function(){tabFlights(root,D);};
+  root.innerHTML='';
+  root.appendChild(setupBar(root,D,re));
+  root.appendChild(secHead('항공',D.flights.length+'건'));
+  root.appendChild(hintBox('한 여정 안에서 경유·귀국편이 있으면 그 여정의 <b>+ 구간 추가</b>로 행을 늘려 순서대로 입력하세요. 여정·예약처·금액·결제·비고는 같은 여정의 모든 행에 공통으로 적용됩니다.'));
+
+  var journeys=D.flights.slice().sort(function(a,b){
+    var da=(a.segs&&a.segs[0]&&a.segs[0].date)||'';
+    var db=(b.segs&&b.segs[0]&&b.segs[0].date)||'';
+    return da.localeCompare(db);
+  });
+
+  var T=mkTable([
+    {t:'여정',w:66},{t:'날짜',w:112},{t:'출발',w:74},{t:'도착',w:74},
+    {t:'항공사',w:88},{t:'편명',w:70},{t:'출발지',w:96},{t:'도착지',w:96},
+    {t:'예약처',w:110},{t:'금액',w:95},{t:'결제',w:70},{t:'비고',w:170},{t:'',w:32}]);
+
+  journeys.forEach(function(j){
+    j.segs=(j.segs&&j.segs.length)?j.segs:[blankSeg()];
+    var span=j.segs.length;
+    j.segs.forEach(function(s,si){
+      var tr=el('tr');
+      var sv=function(full){saveData(D);if(full)re();};
+      function td(cls){var c=el('td',cls);tr.appendChild(c);return c;}
+
+      var ct=td();
+      var tt=el('select');
+      ['왕복','편도'].forEach(function(o){var op=el('option',null,o);op.value=o;
+        if((j.tripType||'왕복')===o)op.selected=true;tt.appendChild(op);});
+      tt.addEventListener('change',function(){
+        j.tripType=tt.value;
+        if(j.tripType==='왕복'){
+          while(j.segs.length<2)j.segs.push(blankSeg());
+        }else if(j.tripType==='편도'&&j.segs.length>1){
+          if(confirm('편도로 바꾸면 두 번째 구간부터는 삭제됩니다. 계속할까요?')){
+            j.segs=[j.segs[0]];
+          }else{
+            j.tripType='왕복';tt.value='왕복';
+          }
+        }
+        saveData(D);re();
+      });
+      ct.appendChild(tt);
+
+      cellInput(td(),s,'date','date',null,sv);
+      cellInput(td(),s,'time','time',null,sv);
+      cellInput(td(),s,'arriveTime','time',null,sv);
+      cellInput(td(),s,'airline','text','항공사',sv);
+      cellInput(td(),s,'flightNo','text','KE407',sv);
+      cellInput(td(),s,'from','text','출발지',sv);
+      cellInput(td(),s,'to','text','도착지',sv);
+
+      /* 예약처·금액·결제·비고는 여정당 한 번만(rowspan) — 반복 입력으로 인한 중복 입력 방지 */
+      if(si===0){
+        var ca=el('td');ca.rowSpan=span;cellInput(ca,j,'agency','text','예약처',sv);tr.appendChild(ca);
+        var cm=el('td');cm.rowSpan=span;cellMoney(cm,j,D,sv);tr.appendChild(cm);
+        var cp=el('td');cp.rowSpan=span;cellSelect(cp,j,'payment',PAY_OPTS,sv);tr.appendChild(cp);
+        var cn=el('td');cn.rowSpan=span;cellInput(cn,j,'memo','text','비고',sv);tr.appendChild(cn);
+      }
+
+      delCell(tr,function(){
+        if(j.segs.length>1){j.segs.splice(si,1);saveData(D);re();}
+        else if(confirm('이 여정을 삭제할까요?')){
+          var idx=D.flights.indexOf(j);if(idx>-1){D.flights.splice(idx,1);saveData(D);re();}
+        }
+      });
+      T.tbody.appendChild(tr);
+    });
+
+    var addTr=el('tr');
+    var addTd=el('td');addTd.colSpan=13;
+    var addBtn=el('button',null,'+ 이 여정에 구간 추가 (경유·귀국편 등)');
+    addBtn.style.cssText='width:100%;padding:7px;font-size:11.5px;color:var(--navy);';
+    addBtn.onclick=function(){j.segs.push(blankSeg());saveData(D);re();};
+    addTd.appendChild(addBtn);addTr.appendChild(addTd);
+    T.tbody.appendChild(addTr);
+  });
+
+  root.appendChild(T.wrap);
+  scrollHint(T.wrap);
+
+  var add=el('button','btn-add','+ 항공 여정 추가');
+  add.onclick=function(){
+    D.flights.push({id:uid(),tripType:'왕복',agency:'',price:'',priceCur:localCur(D),payment:'카드',memo:'',segs:[blankSeg(),blankSeg()]});
+    saveData(D);re();
+  };
+  root.appendChild(add);
+  root.appendChild(sumBar('항공 비용 합계',D.flights,D));
+
+  var b2=el('button','btn-wide','✈ 항공 비교하기');
+  b2.onclick=function(){location.href='DATA/pages/flight-compare.html';};
+  root.appendChild(b2);
+}
+
+/* 금액 합계 바 (현지통화 + 원화) */
+function sumBar(label,arr,D){
+  var k=0,loc=0,krw=0;
+  arr.forEach(function(x){
+    k+=toKRW(x.price,x.priceCur,D);
+    if(x.priceCur==='KRW')krw+=Number(x.price)||0;else loc+=Number(x.price)||0;
+  });
+  var parts=[];
+  if(loc)parts.push(curInfo(localCur(D)).sym+money(loc));
+  if(krw)parts.push(money(krw)+'원');
+  return totalBar(label,money(k)+'원',parts.length?'입력 원본: '+parts.join(' + '):'');
+}
+
+/* ===== 3. 호텔 ===== */
+function tabHotels(root,D){
+  var re=function(){tabHotels(root,D);};
+  root.innerHTML='';
+  root.appendChild(setupBar(root,D,re));
+  var dates=dateRange(D.meta.startDate,D.meta.endDate);
+  root.appendChild(secHead('호텔',dates.length?dates.length+'박':''));
+  if(!dates.length){root.appendChild(el('div','empty','여행 기간을 먼저 입력해주세요.'));return;}
+  root.appendChild(hintBox('여행 날짜마다 한 줄씩 자동 생성됩니다. <b>⧉</b> 버튼으로 다음 날짜에 같은 내용 복사.'));
+
+  D.hotels=D.hotels||{};
+  var T=mkTable([{t:'일정',w:52},{t:'호텔명',w:130},{t:'장소',w:100},{t:'예약처',w:96},
+                 {t:'금액',w:95},{t:'결제',w:64},{t:'비고',w:170},{t:'⧉',w:32}]);
+  var list=[];
+  dates.forEach(function(date,i){
+    var h=D.hotels[date]=D.hotels[date]||{name:'',place:'',agency:'',price:'',priceCur:localCur(D),payment:'카드',memo:''};
+    list.push(h);
+    var tr=el('tr');
+    var s=function(full){saveData(D);if(full)re();};
+    var dh=el('td','rowhead');dh.style.whiteSpace='pre-line';
+    dh.textContent=dayLabel(date,i)+'\n('+wk(date)+')';tr.appendChild(dh);
+    function td(cls){var c=el('td',cls);tr.appendChild(c);return c;}
+    cellInput(td(),h,'name','text','호텔명',s);
+    cellInput(td(),h,'place','text','장소',s);
+    cellInput(td(),h,'agency','text','예약처',s);
+    cellMoney(td(),h,D,s);
+    cellSelect(td(),h,'payment',PAY_OPTS,s);
+    cellInput(td(),h,'memo','text','비고',s);
+    var cp=el('td','del');
+    if(i<dates.length-1){
+      var b=el('button',null,'⧉');b.style.color='#2E7D5B';
+      b.onclick=function(){var n={};for(var q in h)n[q]=h[q];D.hotels[dates[i+1]]=n;saveData(D);re();};
+      cp.appendChild(b);
+    }
+    tr.appendChild(cp);
+    T.tbody.appendChild(tr);
+  });
+  root.appendChild(T.wrap);
+  scrollHint(T.wrap);
+  root.appendChild(sumBar('호텔 비용 합계',list,D));
+
+  var b2=el('button','btn-wide','🏨 호텔 비교하기');
+  b2.onclick=function(){location.href='DATA/pages/hotel-compare.html';};
+  root.appendChild(b2);
+}
+
+/* ===== 4. 투어 ===== */
+function tabTours(root,D){
+  var re=function(){tabTours(root,D);};
+  root.innerHTML='';
+  root.appendChild(setupBar(root,D,re));
+  root.appendChild(secHead('투어',D.tours.length+'건'));
+  root.appendChild(hintBox('<b>투어명 칸의 파란 글씨</b>를 누르면 투어 비교표로 이동합니다. 비교표와 이름이 같으면 해당 카드로 바로 이동해요.'));
+
+  var T=mkTable([{t:'날짜',w:112},{t:'지역',w:80},{t:'투어명',w:130},{t:'↗',w:44},
+                 {t:'프로그램',w:130},{t:'예약처',w:96},{t:'금액',w:95},{t:'결제',w:64},{t:'비고',w:170},{t:'',w:32}]);
+  var sortedTours=D.tours.slice().sort(function(a,b){return (a.date||'').localeCompare(b.date||'');});
+  sortedTours.forEach(function(t){
+    var tr=el('tr');
+    var s=function(full){saveData(D);if(full)re();};
+    function td(cls){var c=el('td',cls);tr.appendChild(c);return c;}
+    cellInput(td(),t,'date','date',null,s);
+    cellInput(td(),t,'region','text','케언즈',s);
+    cellInput(td(),t,'tourName','text','Silverswift',function(full){saveData(D);if(full)re();});
+    var lk=el('td','linkcell');
+    var m=null;
+    (D.tourCompare||[]).forEach(function(c){if(c.name===t.tourName)m=c;});
+    var a=el('a',null,'비교');
+    a.href='DATA/pages/tour-compare.html'+(m?'#'+m.id:'');
+    lk.appendChild(a);tr.appendChild(lk);
+    cellInput(td(),t,'program','text','프로그램명',s);
+    cellInput(td(),t,'agency','text','예약처',s);
+    cellMoney(td(),t,D,s);
+    cellSelect(td(),t,'payment',PAY_OPTS,s);
+    cellInput(td(),t,'memo','text','비고',s);
+    delCell(tr,function(){if(confirm('삭제할까요?')){var q=D.tours.indexOf(t);if(q>-1){D.tours.splice(q,1);saveData(D);re();}}});
+    T.tbody.appendChild(tr);
+  });
+  root.appendChild(T.wrap);
+  scrollHint(T.wrap);
+
+  var add=el('button','btn-add','+ 투어 추가');
+  add.onclick=function(){
+    D.tours.push({id:uid(),date:'',region:'',tourName:'',program:'',agency:'',
+      price:'',priceCur:localCur(D),payment:'카드',memo:''});
+    saveData(D);re();
+  };
+  root.appendChild(add);
+  root.appendChild(sumBar('투어 비용 합계',D.tours,D));
+
+  var b2=el('button','btn-wide','📊 투어 비교표 열기');
+  b2.onclick=function(){location.href='DATA/pages/tour-compare.html';};
+  root.appendChild(b2);
+}
+
+/* ===== 5. 지출노트 ===== */
+var PRE_TRIP='__pre__';
+function tabExpenses(root,D){
+  var re=function(){tabExpenses(root,D);};
+  root.innerHTML='';
+  root.appendChild(setupBar(root,D,re));
+  var dates=dateRange(D.meta.startDate,D.meta.endDate);
+  root.appendChild(secHead('지출노트'));
+  root.appendChild(hintBox('날짜 탭을 눌러 그 날의 지출을 세로로 기록하세요. 맨 앞 <b>출발전</b> 탭에는 여행 전에 미리 쓴 비용(짐·환전·비자 등)을 모아두세요.'));
+  if(!dates.length){root.appendChild(el('div','empty','여행 기간을 먼저 입력해주세요.'));return;}
+
+  var pillDates=[PRE_TRIP].concat(dates);
+  var selDate=getUiTab('expense',pillDates,dates[0]);
+
+  var pills=el('div','daypills');
+  var preBtn=el('button','daypill'+(selDate===PRE_TRIP?' active':''),'출발전');
+  preBtn.onclick=function(){setUiTab('expense',PRE_TRIP);re();};
+  pills.appendChild(preBtn);
+  dates.forEach(function(date,i){
+    var b=el('button','daypill'+(date===selDate?' active':''),mmdd(date)+' ('+wk(date)+')');
+    b.onclick=function(){setUiTab('expense',date);re();};
+    pills.appendChild(b);
+  });
+  root.appendChild(pills);
+
+  var items=D.expenses.filter(function(e){return e.date===selDate;});
+  var T=mkTable([{t:'No',w:34},{t:'카테고리',w:98},{t:'사용내역',w:150},{t:'금액',w:95},{t:'결제',w:64},{t:'비고',w:170},{t:'',w:32}]);
+  var dayK=0;
+  items.forEach(function(item,idx){
+    dayK+=toKRW(item.price,item.priceCur,D);
+    var tr=el('tr');
+    var no=el('td','rowhead',String(idx+1));tr.appendChild(no);
+    var s=function(full){saveData(D);if(full)re();};
+    function td(cls){var c=el('td',cls);tr.appendChild(c);return c;}
+    cellSelect(td(),item,'cat',EXP_CATS,s);
+    cellInput(td(),item,'item','text','사용내역',s);
+    cellMoney(td(),item,D,s);
+    cellSelect(td(),item,'payment',PAY_OPTS,s);
+    cellInput(td(),item,'memo','text','비고',s);
+    delCell(tr,function(){var q=D.expenses.indexOf(item);if(q>-1){D.expenses.splice(q,1);saveData(D);re();}});
+    T.tbody.appendChild(tr);
+  });
+  root.appendChild(T.wrap);
+  scrollHint(T.wrap);
+
+  var add=el('button','btn-add','+ 지출 추가');
+  add.onclick=function(){
+    D.expenses.push({id:uid(),date:selDate,cat:EXP_CATS[0],item:'',price:'',priceCur:localCur(D),payment:'카드',memo:''});
+    saveData(D);re();
+  };
+  root.appendChild(add);
+  root.appendChild(totalBar(selDate===PRE_TRIP?'출발전 지출 합계':'이 날 지출 합계',money(dayK)+'원'));
+  root.appendChild(sumBar('전체 지출 합계',D.expenses,D));
+}
+
+/* ===== 6. 렌트카 ===== */
+function tabRental(root,D){
+  var re=function(){tabRental(root,D);};
+  root.innerHTML='';
+  root.appendChild(setupBar(root,D,re));
+  root.appendChild(secHead('렌트카',D.rentalcar.length+'건'));
+
+  var T=mkTable([{t:'날짜',w:112},{t:'시간',w:74},{t:'업체',w:110},{t:'차종',w:120},
+                 {t:'가격',w:95},{t:'보험',w:110},{t:'결제',w:64},{t:'비고',w:170},{t:'',w:32}]);
+  D.rentalcar.forEach(function(r,idx){
+    var tr=el('tr');
+    var s=function(full){saveData(D);if(full)re();};
+    function td(cls){var c=el('td',cls);tr.appendChild(c);return c;}
+    cellInput(td(),r,'date','date',null,s);
+    cellInput(td(),r,'time','time',null,s);
+    cellInput(td(),r,'company','text','Hertz',s);
+    cellInput(td(),r,'carType','text','Corolla 동급',s);
+    cellMoney(td(),r,D,s);
+    cellInput(td(),r,'insurance','text','자차 풀커버',s);
+    cellSelect(td(),r,'payment',PAY_OPTS,s);
+    cellInput(td(),r,'memo','text','비고',s);
+    delCell(tr,function(){if(confirm('삭제할까요?')){D.rentalcar.splice(idx,1);saveData(D);re();}});
+    T.tbody.appendChild(tr);
+  });
+  root.appendChild(T.wrap);
+  scrollHint(T.wrap);
+
+  var add=el('button','btn-add','+ 렌트카 추가');
+  add.onclick=function(){
+    D.rentalcar.push({id:uid(),date:'',time:'',company:'',carType:'',price:'',
+      priceCur:localCur(D),insurance:'',payment:'카드',memo:''});
+    saveData(D);re();
+  };
+  root.appendChild(add);
+  root.appendChild(sumBar('렌트카 비용 합계',D.rentalcar,D));
+
+  var b2=el('button','btn-wide','🚗 렌트카 비교하기');
+  b2.onclick=function(){location.href='DATA/pages/rentalcar-compare.html';};
+  root.appendChild(b2);
+}
+
+/* ===== 7 · 8. 중요기록 / 아이디어 ===== */
+function tabRecords(root,D,key,title,hintHtml){
+  var re=function(){tabRecords(root,D,key,title,hintHtml);};
+  root.innerHTML='';
+  root.appendChild(secHead(title,D[key].length+'건'));
+  root.appendChild(hintBox(hintHtml));
+
+  var T=mkTable([{t:'연번',w:42},{t:'제목',w:150},{t:'링크',w:170},{t:'열기',w:46},
+                 {t:'이미지 파일',w:130},{t:'',w:32}]);
+  D[key].forEach(function(item,idx){
+    var tr=el('tr');
+    var s=function(full){saveData(D);if(full)re();};
+    var no=el('td','rowhead',String(idx+1));tr.appendChild(no);
+    function td(cls){var c=el('td',cls);tr.appendChild(c);return c;}
+    cellInput(td(),item,'title','text','제목',s);
+    cellInput(td(),item,'link','text','https://...',function(full){saveData(D);if(full)re();});
+    var op=el('td','linkcell');
+    if(item.link){var a=el('a',null,'열기');a.href=item.link;a.target='_blank';a.rel='noopener';op.appendChild(a);}
+    else{var sp=el('div',null,'-');sp.style.cssText='padding:8px;text-align:center;color:var(--muted);';op.appendChild(sp);}
+    tr.appendChild(op);
+
+    var ic=el('td');
+    if(item.imageFile){
+      var ia=el('a',null,'🖼 '+item.imageFile);
+      ia.href='DATA/이미지/'+item.imageFile;ia.target='_blank';
+      ia.style.cssText='display:block;padding:8px 7px;font-size:11.5px;color:var(--green);text-decoration:underline;word-break:break-all;';
+      ic.appendChild(ia);
+      var rm=el('button',null,'파일 변경');
+      rm.style.cssText='display:block;width:100%;padding:4px;font-size:10px;color:var(--muted);';
+      rm.onclick=function(){item.imageFile='';saveData(D);re();};
+      ic.appendChild(rm);
+    }else{
+      var fi=el('input');fi.type='file';fi.accept='image/*';
+      fi.style.cssText='padding:6px 5px;font-size:10.5px;';
+      fi.addEventListener('change',function(e){
+        var f=e.target.files[0];if(!f)return;
+        item.imageFile=f.name;saveData(D);
+        var u=URL.createObjectURL(f);var a2=el('a');a2.href=u;a2.download=f.name;
+        document.body.appendChild(a2);a2.click();a2.remove();URL.revokeObjectURL(u);
+        alert('"'+f.name+'" 다운로드됨.\nDATA/이미지 폴더로 옮기면 링크로 열립니다.');
+        re();
+      });
+      ic.appendChild(fi);
+    }
+    tr.appendChild(ic);
+    delCell(tr,function(){if(confirm('삭제할까요?')){D[key].splice(idx,1);saveData(D);re();}});
+    T.tbody.appendChild(tr);
+  });
+  root.appendChild(T.wrap);
+  scrollHint(T.wrap);
+
+  var add=el('button','btn-add','+ 항목 추가');
+  add.onclick=function(){D[key].push({id:uid(),title:'',link:'',imageFile:''});saveData(D);re();};
+  root.appendChild(add);
+}
+
+
+var AllData = loadData();
+var activeTripId = localStorage.getItem(ACTIVE_KEY);
+if(!activeTripId||!AllData.trips[activeTripId])activeTripId=AllData.tripOrder[0];
+var D = AllData.trips[activeTripId];
+var TABS=[
+ {k:'summary',  l:'SUMMARY',   s:'여행 전체 집계',        sec:'summaryNotes', r:function(x){tabSummary(x,D);}},
+ {k:'itinerary',l:'일정',       s:'기간 · 타임테이블',      sec:'itinerary',    r:function(x){tabItinerary(x,D);}},
+ {k:'flights',  l:'항공',       s:'출발 · 도착 항공편',     sec:'flights',      r:function(x){tabFlights(x,D);}},
+ {k:'hotels',   l:'호텔',       s:'날짜별 숙박',           sec:'hotels',       r:function(x){tabHotels(x,D);}},
+ {k:'tours',    l:'투어',       s:'지역별 투어 예약',       sec:'tours',        r:function(x){tabTours(x,D);}},
+ {k:'expenses', l:'지출노트',    s:'날짜별 소비 · 소계',     sec:'expenses',     r:function(x){tabExpenses(x,D);}},
+ {k:'rentalcar',l:'렌트카',     s:'예약 정보 · 업체 비교',   sec:'rentalcar',    r:function(x){tabRental(x,D);}},
+ {k:'records',  l:'중요기록',    s:'제목 · 링크 · 이미지',   sec:'records',      r:function(x){tabRecords(x,D,'records','중요기록','연번은 자동입니다. 이미지는 선택 시 다운로드되니 <b>DATA/이미지</b> 폴더로 옮겨주세요.');}},
+ {k:'ideas',    l:'아이디어공간', s:'제목 · 링크 · 이미지',   sec:'ideas',        r:function(x){tabRecords(x,D,'ideas','아이디어공간','중요기록과 같은 형식입니다. 나중에 쓸 아이디어와 링크를 모아두세요.');}}
+];
+var bar=document.getElementById('appbar'),tb=document.getElementById('tabbar'),ct=document.getElementById('content'),tripBarEl=document.getElementById('tripbar');
+function show(k){
+  var t=null;
+  for(var i=0;i<TABS.length;i++){if(TABS[i].k===k){t=TABS[i];break;}}
+  if(!t)t=TABS[0];
+  try{location.hash=t.k;}catch(e){}
+  for(var j=0;j<tb.children.length;j++){
+    var b=tb.children[j];
+    b.className=(b.getAttribute('data-k')===t.k)?'tab-btn active':'tab-btn';
+  }
+  curSection=t.sec;curTab=t;
+  buildTripBar(tripBarEl);
+  buildAppBar(bar);
+  window.scrollTo(0,0);
+  t.r(ct);
+}
+TABS.forEach(function(t){
+  var b=document.createElement('button');
+  b.className='tab-btn';b.setAttribute('data-k',t.k);b.textContent=t.l;
+  b.onclick=function(){show(t.k);};
+  tb.appendChild(b);
+});
+show((location.hash||'').replace('#','')||'summary');
+fbInit();
+
+</script>
+</body>
+</html>
