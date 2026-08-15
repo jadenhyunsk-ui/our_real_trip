@@ -1171,8 +1171,8 @@ function tabSummary(root,D){
   var pd0=el('td','rowhead');pd0.style.cursor='pointer';pd0.title='탭하면 지출노트의 출발전 탭으로 이동';
   pd0.textContent='출발전';pd0.addEventListener('click',goExp);
   preTr.appendChild(pd0);
-  var pc1=el('td');var pc1d=el('div');pc1d.style.cssText='padding:8px 7px;font-size:12.5px;';
-  pc1d.textContent=preItems.length?preItems.join(' / '):'-';pc1.appendChild(pc1d);preTr.appendChild(pc1);
+  var pc1=el('td');var pc1d=el('div');pc1d.style.cssText='padding:8px 7px;font-size:12.5px;white-space:pre-line;';
+  pc1d.textContent=preItems.length?preItems.join('\n'):'-';pc1.appendChild(pc1d);preTr.appendChild(pc1);
   var pc2=el('td');var pc2d=el('div');pc2d.style.cssText='padding:8px 7px;font-size:12.5px;';pc2d.textContent='-';pc2.appendChild(pc2d);preTr.appendChild(pc2);
   var pc3=el('td');var pc3d=el('div');pc3d.style.cssText='padding:8px 7px;font-size:11.5px;';pc3d.textContent='-';pc3.appendChild(pc3d);preTr.appendChild(pc3);
   var pc4=el('td','num');var pc4d=el('div');pc4d.style.cssText='padding:8px 7px;font-size:12px;text-align:right;font-family:var(--mono);';
