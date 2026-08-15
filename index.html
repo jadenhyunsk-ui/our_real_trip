@@ -239,7 +239,7 @@ var STORAGE_KEY='tripData_v4';
 var ACTIVE_KEY='tripActiveId_v1';
 function uid(){return 'id_'+Math.random().toString(36).slice(2,9);}
 var PAY_OPTS=['카드','현금','마일리지','기타'];
-var EXP_CATS=['항공권','숙박비','식비','간식','교통','쇼핑','기념품','관광/입장료','통신','기타'];
+var EXP_CATS=['항공권','숙박비','식비','간식','교통','쇼핑','기념품','관광/입장료','통신','보험','수수료','기타'];
 
 /* ===== 통화 ===== */
 var CURRENCIES=[
@@ -1745,11 +1745,26 @@ function tabExpenses(root,D){
   root.appendChild(pills);
 
   var items=D.expenses.filter(function(e){return e.date===selDate;});
+  var displayItems=items.slice().sort(function(a,b){
+    var ai=EXP_CATS.indexOf(a.cat);if(ai<0)ai=EXP_CATS.length;
+    var bi=EXP_CATS.indexOf(b.cat);if(bi<0)bi=EXP_CATS.length;
+    return ai-bi;
+  });
+  var catColorMap={};var pi=0;
+  displayItems.forEach(function(item){
+    var cat=(item.cat||'').trim();
+    if(cat&&!(cat in catColorMap)){catColorMap[cat]=RECORD_CAT_PALETTE[pi%RECORD_CAT_PALETTE.length];pi++;}
+  });
+  var prevCat;
   var T=mkTable([{t:'No',w:34},{t:'카테고리',w:98},{t:'사용내역',w:150},{t:'금액',w:138},{t:'결제',w:64},{t:'비고',w:170},{t:'',w:32}]);
   var dayK=0;
-  items.forEach(function(item,idx){
+  displayItems.forEach(function(item,idx){
     dayK+=toKRW(item.price,item.priceCur,D);
     var tr=el('tr');
+    var cat=(item.cat||'').trim();
+    if(idx>0&&cat!==prevCat)tr.classList.add('cat-boundary');
+    prevCat=cat;
+    if(cat&&catColorMap[cat]){tr.classList.add('cat-tinted');tr.style.setProperty('--cat-bg',catColorMap[cat]);}
     var no=el('td','rowhead',String(idx+1));tr.appendChild(no);
     var s=function(full){saveData(D);if(full)re();};
     function td(cls){var c=el('td',cls);tr.appendChild(c);return c;}
