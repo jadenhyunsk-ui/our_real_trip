@@ -190,7 +190,8 @@ tr.subtotal td.num{text-align:right;font-family:var(--mono);color:var(--coral);}
 .tl-item{position:absolute;left:2px;right:2px;background:#FFF6E9;border:1px solid var(--coral);border-left:4px solid var(--coral);
   border-radius:6px;padding:3px 20px 3px 6px;overflow:hidden;box-shadow:0 1px 3px rgba(0,0,0,.1);}
 .tl-time{font-size:9px;font-family:var(--mono);color:var(--coral);font-weight:700;line-height:1.2;}
-.tl-activity{width:100%;border:none;background:transparent;font-size:12.5px;padding:1px 0;outline:none;color:var(--ink);}
+.tl-activity{width:100%;border:none;background:transparent;font-size:12.5px;padding:1px 0;outline:none;color:var(--ink);
+  font-family:inherit;line-height:1.35;resize:none;overflow-y:auto;}
 .tl-del{position:absolute;top:2px;right:2px;font-size:9px;color:var(--red);width:16px;height:16px;line-height:16px;text-align:center;}
 .tl-handle{position:absolute;bottom:0;left:0;right:0;height:11px;cursor:ns-resize;text-align:center;
   font-size:8px;color:var(--muted);line-height:9px;touch-action:none;letter-spacing:1px;}
@@ -1290,9 +1291,10 @@ function buildBlock(D,item,st,en,re){
   var timeLbl=el('div','tl-time',minToTime(st)+'–'+minToTime(en));
   blk.appendChild(timeLbl);
 
-  var act=el('input','tl-activity');act.type='text';act.placeholder='내용 입력';act.value=item.activity||'';
+  var act=el('textarea','tl-activity');act.rows=1;act.placeholder='내용 입력';act.value=item.activity||'';
   act.addEventListener('input',function(){item.activity=act.value;saveData(D);});
   act.addEventListener('click',function(e){e.stopPropagation();});
+  act.addEventListener('keydown',function(e){e.stopPropagation();});
   blk.appendChild(act);
 
   var del=el('button','tl-del','✕');
