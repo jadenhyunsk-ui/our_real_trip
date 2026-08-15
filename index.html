@@ -217,9 +217,9 @@ tr.subtotal td.num{text-align:right;font-family:var(--mono);color:var(--coral);}
 </style>
 </head>
 <body>
-<nav class="tabbar" id="tabbar"></nav>
 <div id="tripbar"></div>
 <div id="appbar"></div>
+<nav class="tabbar" id="tabbar"></nav>
 <main id="content"></main>
 <div id="toast" class="toast">저장됨 ✓</div>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
@@ -1652,6 +1652,7 @@ TABS.forEach(function(t){
   tb.appendChild(b);
 });
 show((location.hash||'').replace('#','')||'summary');
+window.scrollTo(0,tb.offsetTop);
 fbInit();
 
 </script>
