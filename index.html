@@ -1077,26 +1077,26 @@ function tabSummary(root,D){
   var T=mkTable([{t:'일정',w:52},{t:'요약',w:130},{t:'호텔',w:100},{t:'이동',w:130},{t:'사용금액',w:138},{t:'비고',w:160}]);
   D.summaryNotes=D.summaryNotes||{};
 
-  /* 항공·호텔·투어·렌트카·지출노트 5개 탭의 금액을 날짜별로 집계.
-     지출노트에서 "가져오기"로 가져온 항목(impTab 있음)은 원본 탭에서 이미 집계되므로 제외해 중복계산을 막는다.
-     여행 기간에 속하지 않는 날짜(또는 날짜 미정)는 '출발전'으로 모은다. */
+  /* 항공·호텔·투어·렌트카·지출노트 5개 탭의 금액을 집계.
+     항공/호텔/투어/렌트카는 보통 출발 전에 미리 결제하므로(지출노트 가져오기와 동일한 기준)
+     실제 이용 날짜와 상관없이 항상 '출발전'으로 잡는다.
+     지출노트에서 "가져오기"로 가져온 항목(impTab 있음)은 원본 탭에서 이미 집계되므로 제외해 중복계산을 막는다. */
   function assignDate(d){return (d&&dates.indexOf(d)>-1)?d:PRE_TRIP;}
   var costItems=[];
   (D.flights||[]).forEach(function(j){
     if(!j.price)return;
-    var d0=(j.segs&&j.segs[0]&&j.segs[0].date)||'';
-    costItems.push({date:assignDate(d0),price:j.price,priceCur:j.priceCur});
+    costItems.push({date:PRE_TRIP,price:j.price,priceCur:j.priceCur});
   });
   groupHotelStays(D,dates).forEach(function(g){
-    if(g.h.price)costItems.push({date:g.first,price:g.h.price,priceCur:g.h.priceCur});
+    if(g.h.price)costItems.push({date:PRE_TRIP,price:g.h.price,priceCur:g.h.priceCur});
   });
   (D.tours||[]).forEach(function(t){
     if(!t.price)return;
-    costItems.push({date:assignDate(t.date),price:t.price,priceCur:t.priceCur});
+    costItems.push({date:PRE_TRIP,price:t.price,priceCur:t.priceCur});
   });
   (D.rentalcar||[]).forEach(function(r){
     if(!r.price)return;
-    costItems.push({date:assignDate(r.date),price:r.price,priceCur:r.priceCur});
+    costItems.push({date:PRE_TRIP,price:r.price,priceCur:r.priceCur});
   });
   (D.expenses||[]).forEach(function(e){
     if(e.impTab)return;
