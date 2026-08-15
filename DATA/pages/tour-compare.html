@@ -76,6 +76,9 @@ table.grid td input,table.grid td select,table.grid td textarea{
 table.grid td textarea{resize:vertical;min-height:34px;line-height:1.4;}
 table.grid td input:focus,table.grid td select:focus,table.grid td textarea:focus{background:#FFF6E9;}
 table.grid td.num input{text-align:right;font-family:var(--mono);color:var(--amber);font-weight:700;}
+.money-cell{display:flex;align-items:center;}
+.money-cell input{flex:1;min-width:0;text-align:right;font-family:var(--mono);}
+.money-cell select{width:54px;flex:0 0 auto;font-size:10.5px;padding:8px 2px!important;color:var(--muted);border-left:1px solid var(--grid)!important;}
 table.grid td.ctr{text-align:center;}
 table.grid td.sel{width:44px;text-align:center;background:#FAF7F1!important;}
 table.grid td.sel input{width:18px;height:18px;accent-color:var(--coral);margin:8px auto;display:block;}
@@ -470,6 +473,23 @@ function cellArea(td,obj,key,ph,onDone){
   t.addEventListener('input',function(){obj[key]=t.value;if(onDone)onDone(false);});
   td.appendChild(t);return t;
 }
+function cellMoney(td,obj,D,onDone){
+  td.className='num';
+  var box=el('div','money-cell');
+  var i=el('input');i.type='number';i.inputMode='decimal';i.placeholder='0';
+  i.value=obj.price==null?'':obj.price;
+  i.addEventListener('input',function(){obj.price=i.value;if(onDone)onDone(false);});
+  i.addEventListener('change',function(){obj.price=i.value;if(onDone)onDone(true);});
+  var s=el('select');
+  var lc=localCur(D);
+  var opts=(lc==='KRW')?['KRW']:[lc,'KRW'];
+  if(!obj.priceCur)obj.priceCur=lc;
+  if(opts.indexOf(obj.priceCur)<0)opts.push(obj.priceCur);
+  opts.forEach(function(c){var n=el('option',null,c);n.value=c;
+    if(obj.priceCur===c)n.selected=true;s.appendChild(n);});
+  s.addEventListener('change',function(){obj.priceCur=s.value;if(onDone)onDone(true);});
+  box.appendChild(i);box.appendChild(s);td.appendChild(box);
+}
 function delCell(tr,onClick){
   var td=el('td','del');var b=el('button',null,'✕');
   b.onclick=onClick;td.appendChild(b);tr.appendChild(td);
@@ -505,15 +525,6 @@ function parsePriceStr(s){
   if(!cur&&/^US\$/.test(symRaw))cur='USD';
   return{amount:amount,cur:cur};
 }
-function bookingsToText(bookings){
-  return (bookings||[]).map(function(b){return [b.name||'',b.note||'',b.price||'',b.url||''].join(' | ');}).join('\n');
-}
-function textToBookings(text){
-  return String(text||'').split('\n').map(function(line){
-    var parts=line.split('|').map(function(s){return s.trim();});
-    return {name:parts[0]||'',note:parts[1]||'',price:parts[2]||'',url:parts[3]||''};
-  }).filter(function(b){return b.name||b.note||b.price||b.url;});
-}
 
 /* ===== 상단바 ===== */
 var ICON_DOWNLOAD='<svg viewBox="0 0 24 24" fill="none"><path d="M12 3V15M7 10L12 15L17 10" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/><path d="M5 19H19" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>';
@@ -543,10 +554,19 @@ function renderCompareTable(root,D,arrayKey,starLabels,L){
     var st={};starLabels.forEach(function(item){st[item[1]]=0;});
     return{id:uid(),selected:false,name:L.newName,agency:'',badge:'',duration:'',points:'',
       rating:'',ratingCount:'',reviewQuote:'',pros:'',cons:'',diveNote:'',
-      diveStars:st,tags:'',bookings:[]};
+      diveStars:st,price:'',priceCur:localCur(D)};
   }
   root.innerHTML='';
   var arr=D[arrayKey];
+  var migrated=false;
+  arr.forEach(function(t){
+    if(t.tags){t.diveNote=(t.diveNote?t.diveNote+' · ':'')+t.tags;t.tags='';migrated=true;}
+    if(!t.price&&t.bookings&&t.bookings.length){
+      var pp=parsePriceStr(t.bookings[0].price);
+      if(pp.amount){t.price=pp.amount;t.priceCur=pp.cur||localCur(D);migrated=true;}
+    }
+  });
+  if(migrated)saveData(D);
   document.getElementById('cnt').textContent=arr.length+'건';
 
   var imp=el('button','btn-add',L.importLabel);
@@ -561,11 +581,11 @@ function renderCompareTable(root,D,arrayKey,starLabels,L){
   if(!arr.length){root.appendChild(el('div','empty','비교할 항목이 없습니다. 위 버튼으로 불러오거나 아래 버튼으로 새로 추가하세요.'));}
   else{
     var cols=[{t:'선정',w:44},{t:L.badgeLabel||'뱃지',w:90},{t:'이름',w:120},{t:L.agencyPh,w:120},
+      {t:'투어가격',w:95},
       {t:L.duration,w:130},{t:L.points,w:130},
       {t:'장점',w:150},{t:'단점',w:150}];
     starLabels.forEach(function(item){cols.push({t:item[0],w:90});});
-    cols.push({t:'평가 메모',w:150},{t:'태그',w:120},
-      {t:'예약처별 가격 (이름|비고|가격|URL, 줄마다 하나씩)',w:220},{t:'',w:32});
+    cols.push({t:'비고',w:170},{t:'',w:32});
     var T=mkTable(cols);
 
     /* 카테고리(뱃지)별로 묶어서 표시 + 같은 카테고리는 옅은 배경색으로 구분 */
@@ -608,6 +628,7 @@ function renderCompareTable(root,D,arrayKey,starLabels,L){
       cellInput(td(),t,'badge','text',L.badgePh||'뱃지',sv);
       cellInput(td(),t,'name','text',L.newName,sv);
       cellInput(td(),t,'agency','text',L.agencyPh,sv);
+      cellMoney(td(),t,D,sv);
       cellInput(td(),t,'duration','text',null,sv);
       cellInput(td(),t,'points','text',null,sv);
       cellArea(td(),t,'pros','장점',sv);
@@ -624,15 +645,7 @@ function renderCompareTable(root,D,arrayKey,starLabels,L){
         c.appendChild(s);tr.appendChild(c);
       });
 
-      cellArea(td(),t,'diveNote','평가 메모',sv);
-      cellInput(td(),t,'tags','text','쉼표로 구분',sv);
-
-      var bkTd=el('td');
-      var bkTa=el('textarea');bkTa.rows=1;bkTa.value=bookingsToText(t.bookings);
-      bkTa.placeholder=L.notePh;
-      bkTa.addEventListener('input',function(){t.bookings=textToBookings(bkTa.value);});
-      bkTa.addEventListener('change',function(){t.bookings=textToBookings(bkTa.value);saveData(D);});
-      bkTd.appendChild(bkTa);tr.appendChild(bkTd);
+      cellArea(td(),t,'diveNote','비고',sv);
 
       delCell(tr,function(){
         if(confirm('비교표에서 삭제할까요?')){
@@ -655,10 +668,7 @@ function renderCompareTable(root,D,arrayKey,starLabels,L){
   apply.onclick=function(){
     var chosen=arr.filter(function(c){return c.selected;});
     if(!chosen.length){alert('반영할 항목에 체크(선정)해주세요.');return;}
-    chosen.forEach(function(c){
-      var b=(c.bookings&&c.bookings[0])||{};
-      L.applyOne(c,b,parsePriceStr(b.price));
-    });
+    chosen.forEach(function(c){L.applyOne(c);});
     saveData(D,L.mainKey);
     alert(chosen.length+'개 항목이 반영되었습니다.');
     location.href=L.mainTabHref;
@@ -674,16 +684,15 @@ var D=AllData.trips[activeTripId];
 buildAppBar(document.getElementById('appbar'));
 document.getElementById('hintbox').innerHTML='투어 탭과 <b>동일한 표 형식</b>입니다. 여기 <b>이름</b>과 같은 투어명을 4번 탭에 쓰면 「비교」를 눌렀을 때 해당 행으로 이동합니다. <b>투어카테고리</b>가 같으면 같은 옅은 색으로 묶여 표시됩니다. <b>선정</b>에 체크 후 맨 아래 버튼을 누르면 체크된 투어가 투어 탭에 자동으로 추가됩니다.';
 var L={newName:'새 투어',agencyPh:'운영사/대행사',duration:'체류시간·일정',points:'방문 포인트',
-  notePh:'예: 공홈 | RRP A$248→할인가 | A$223 | https://...',
   addLabel:'+ 비교할 투어 추가',applyLabel:'✅ 체크한 투어를 투어 탭에 반영',
   importLabel:'📥 현재 투어 탭 값 불러오기',
   groupByCategory:true,badgeLabel:'투어카테고리',badgePh:'카테고리 (예: 스노클링, 다이빙)',
   mainKey:'tours',mainTabHref:'../../index.html#tours',
-  applyOne:function(c,b,pp){
+  applyOne:function(c){
     var target=c.importedFrom?D.tours.filter(function(x){return x.id===c.importedFrom;})[0]:null;
     var t=target||{id:uid(),date:'',region:'',program:''};
-    t.tourName=c.name||'';t.agency=b.name||c.agency||'';t.price=pp.amount||'';t.priceCur=pp.cur||localCur(D);
-    t.payment='카드';t.memo=(c.tags?c.tags+' · ':'')+(b.price?'참고가: '+b.price:'');
+    t.tourName=c.name||'';t.agency=c.agency||'';t.price=c.price||'';t.priceCur=c.priceCur||localCur(D);
+    t.payment='카드';t.memo=c.diveNote||'';
     if(!target)D.tours.push(t);
   },
   importFn:function(D,arr){
@@ -694,8 +703,8 @@ var L={newName:'새 투어',agencyPh:'운영사/대행사',duration:'체류시�
       if(!t.tourName||existing[t.id])return;
       arr.push({id:uid(),importedFrom:t.id,selected:true,name:t.tourName,agency:t.agency||'',badge:'',
         duration:'',points:t.program||'',rating:'',ratingCount:'',reviewQuote:'',pros:'',cons:'',
-        diveNote:t.memo||'',diveStars:{0:0,1:0,2:0,3:0},tags:'',
-        bookings:(t.agency||t.price)?[{name:t.agency||'',note:'',price:(t.price?t.price+' '+(t.priceCur||''):''),url:''}]:[]});
+        diveNote:t.memo||'',diveStars:{0:0,1:0,2:0,3:0},
+        price:t.price||'',priceCur:t.priceCur||localCur(D)});
       added++;
     });
     return added;
