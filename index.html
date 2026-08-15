@@ -139,8 +139,6 @@ table.grid td.rowhead{
 }
 table.grid td.del{width:32px;text-align:center;background:#FAF7F1!important;}
 table.grid td.del button{width:100%;padding:8px 0;color:var(--red);font-size:13px;}
-table.grid td.linkcell a{display:block;padding:8px 7px;font-size:13px;color:var(--coral);
-  text-decoration:underline;text-underline-offset:2px;white-space:nowrap;}
 tr.subtotal td{background:var(--sand)!important;font-weight:700;font-size:12px;color:var(--navy);padding:7px 8px!important;}
 tr.subtotal td.num{text-align:right;font-family:var(--mono);color:var(--coral);}
 .money-cell{display:flex;align-items:center;width:100%;}
@@ -1601,13 +1599,13 @@ function tabRental(root,D){
   root.appendChild(b2);
 }
 
-/* ===== 7 · 8. 중요기록 / 아이디어 ===== */
+/* ===== 7. 링크/이미지 기록 ===== */
 function tabRecords(root,D,key,title){
   var re=function(){tabRecords(root,D,key,title);};
   root.innerHTML='';
   root.appendChild(secHead(title,D[key].length+'건'));
 
-  var T=mkTable([{t:'연번',w:42},{t:'제목',w:150},{t:'링크',w:170},{t:'열기',w:46},
+  var T=mkTable([{t:'연번',w:42},{t:'제목',w:150},{t:'링크',w:170},
                  {t:'이미지 파일',w:130},{t:'',w:32}]);
   D[key].forEach(function(item,idx){
     var tr=el('tr');
@@ -1615,11 +1613,7 @@ function tabRecords(root,D,key,title){
     var no=el('td','rowhead',String(idx+1));tr.appendChild(no);
     function td(cls){var c=el('td',cls);tr.appendChild(c);return c;}
     cellInput(td(),item,'title','text','제목',s);
-    cellInput(td(),item,'link','text','https://...',function(full){saveData(D);if(full)re();});
-    var op=el('td','linkcell');
-    if(item.link){var a=el('a',null,'열기');a.href=item.link;a.target='_blank';a.rel='noopener';op.appendChild(a);}
-    else{var sp=el('div',null,'-');sp.style.cssText='padding:8px;text-align:center;color:var(--muted);';op.appendChild(sp);}
-    tr.appendChild(op);
+    cellInput(td(),item,'link','text','https://...',s);
 
     var ic=el('td');
     if(item.imageFile){
@@ -1656,6 +1650,32 @@ function tabRecords(root,D,key,title){
   root.appendChild(add);
 }
 
+/* ===== 8. 아이디어공간 ===== */
+function tabIdeas(root,D){
+  var re=function(){tabIdeas(root,D);};
+  root.innerHTML='';
+  root.appendChild(secHead('아이디어공간',D.ideas.length+'건'));
+
+  var T=mkTable([{t:'연번',w:42},{t:'제목',w:130},{t:'내용',w:220},{t:'비고',w:150},{t:'',w:32}]);
+  D.ideas.forEach(function(item,idx){
+    var tr=el('tr');
+    var s=function(full){saveData(D);if(full)re();};
+    var no=el('td','rowhead',String(idx+1));tr.appendChild(no);
+    function td(cls){var c=el('td',cls);tr.appendChild(c);return c;}
+    cellInput(td(),item,'title','text','제목',s);
+    cellArea(td(),item,'content','내용 (엔터로 줄바꿈)',s);
+    cellArea(td(),item,'memo','비고',s);
+    delCell(tr,function(){if(confirm('삭제할까요?')){D.ideas.splice(idx,1);saveData(D);re();}});
+    T.tbody.appendChild(tr);
+  });
+  root.appendChild(T.wrap);
+  scrollHint(T.wrap);
+
+  var add=el('button','btn-add','+ 아이디어 추가');
+  add.onclick=function(){D.ideas.push({id:uid(),title:'',content:'',memo:''});saveData(D);re();};
+  root.appendChild(add);
+}
+
 
 var AllData = loadData();
 var activeTripId = localStorage.getItem(ACTIVE_KEY);
@@ -1669,8 +1689,8 @@ var TABS=[
  {k:'tours',    l:'투어',       s:'지역별 투어 예약',       sec:'tours',        r:function(x){tabTours(x,D);}},
  {k:'expenses', l:'지출노트',    s:'날짜별 소비 · 소계',     sec:'expenses',     r:function(x){tabExpenses(x,D);}},
  {k:'rentalcar',l:'렌트카',     s:'예약 정보 · 업체 비교',   sec:'rentalcar',    r:function(x){tabRental(x,D);}},
- {k:'records',  l:'중요기록',    s:'제목 · 링크 · 이미지',   sec:'records',      r:function(x){tabRecords(x,D,'records','중요기록');}},
- {k:'ideas',    l:'아이디어공간', s:'제목 · 링크 · 이미지',   sec:'ideas',        r:function(x){tabRecords(x,D,'ideas','아이디어공간');}}
+ {k:'records',  l:'링크/이미지 기록', s:'제목 · 링크 · 이미지',   sec:'records',      r:function(x){tabRecords(x,D,'records','링크/이미지 기록');}},
+ {k:'ideas',    l:'아이디어공간', s:'제목 · 내용 · 비고',   sec:'ideas',        r:function(x){tabIdeas(x,D);}}
 ];
 var bar=document.getElementById('appbar'),tb=document.getElementById('tabbar'),ct=document.getElementById('content'),tripBarEl=document.getElementById('tripbar');
 function show(k){
