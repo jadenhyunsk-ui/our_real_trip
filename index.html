@@ -190,7 +190,8 @@ tr.subtotal td.num{text-align:right;font-family:var(--mono);color:var(--coral);}
 .tl-item{position:absolute;left:2px;right:2px;background:#FFF6E9;border:1px solid var(--coral);border-left:4px solid var(--coral);
   border-radius:6px;padding:3px 20px 3px 6px;overflow:hidden;box-shadow:0 1px 3px rgba(0,0,0,.1);}
 .tl-time{font-size:9px;font-family:var(--mono);color:var(--coral);font-weight:700;line-height:1.2;}
-.tl-activity{width:100%;border:none;background:transparent;font-size:12.5px;padding:1px 0;outline:none;color:var(--ink);}
+.tl-activity{width:100%;border:none;background:transparent;font-size:12.5px;padding:1px 0;outline:none;color:var(--ink);
+  font-family:inherit;line-height:1.35;resize:none;overflow-y:auto;}
 .tl-del{position:absolute;top:2px;right:2px;font-size:9px;color:var(--red);width:16px;height:16px;line-height:16px;text-align:center;}
 .tl-handle{position:absolute;bottom:0;left:0;right:0;height:11px;cursor:ns-resize;text-align:center;
   font-size:8px;color:var(--muted);line-height:9px;touch-action:none;letter-spacing:1px;}
@@ -239,7 +240,7 @@ var STORAGE_KEY='tripData_v4';
 var ACTIVE_KEY='tripActiveId_v1';
 function uid(){return 'id_'+Math.random().toString(36).slice(2,9);}
 var PAY_OPTS=['카드','현금','마일리지','기타'];
-var EXP_CATS=['항공권','숙박비','식비','간식','교통','쇼핑','기념품','관광/입장료','통신','기타'];
+var EXP_CATS=['항공권','숙박비','식비','간식','교통','쇼핑','기념품','관광/입장료','통신','보험','수수료','기타'];
 
 /* ===== 통화 ===== */
 var CURRENCIES=[
@@ -1077,26 +1078,26 @@ function tabSummary(root,D){
   var T=mkTable([{t:'일정',w:52},{t:'요약',w:130},{t:'호텔',w:100},{t:'이동',w:130},{t:'사용금액',w:138},{t:'비고',w:160}]);
   D.summaryNotes=D.summaryNotes||{};
 
-  /* 항공·호텔·투어·렌트카·지출노트 5개 탭의 금액을 날짜별로 집계.
-     지출노트에서 "가져오기"로 가져온 항목(impTab 있음)은 원본 탭에서 이미 집계되므로 제외해 중복계산을 막는다.
-     여행 기간에 속하지 않는 날짜(또는 날짜 미정)는 '출발전'으로 모은다. */
+  /* 항공·호텔·투어·렌트카·지출노트 5개 탭의 금액을 집계.
+     항공/호텔/투어/렌트카는 보통 출발 전에 미리 결제하므로(지출노트 가져오기와 동일한 기준)
+     실제 이용 날짜와 상관없이 항상 '출발전'으로 잡는다.
+     지출노트에서 "가져오기"로 가져온 항목(impTab 있음)은 원본 탭에서 이미 집계되므로 제외해 중복계산을 막는다. */
   function assignDate(d){return (d&&dates.indexOf(d)>-1)?d:PRE_TRIP;}
   var costItems=[];
   (D.flights||[]).forEach(function(j){
     if(!j.price)return;
-    var d0=(j.segs&&j.segs[0]&&j.segs[0].date)||'';
-    costItems.push({date:assignDate(d0),price:j.price,priceCur:j.priceCur});
+    costItems.push({date:PRE_TRIP,price:j.price,priceCur:j.priceCur});
   });
   groupHotelStays(D,dates).forEach(function(g){
-    if(g.h.price)costItems.push({date:g.first,price:g.h.price,priceCur:g.h.priceCur});
+    if(g.h.price)costItems.push({date:PRE_TRIP,price:g.h.price,priceCur:g.h.priceCur});
   });
   (D.tours||[]).forEach(function(t){
     if(!t.price)return;
-    costItems.push({date:assignDate(t.date),price:t.price,priceCur:t.priceCur});
+    costItems.push({date:PRE_TRIP,price:t.price,priceCur:t.priceCur});
   });
   (D.rentalcar||[]).forEach(function(r){
     if(!r.price)return;
-    costItems.push({date:assignDate(r.date),price:r.price,priceCur:r.priceCur});
+    costItems.push({date:PRE_TRIP,price:r.price,priceCur:r.priceCur});
   });
   (D.expenses||[]).forEach(function(e){
     if(e.impTab)return;
@@ -1125,7 +1126,7 @@ function tabSummary(root,D){
       });
     });
     (D.rentalcar||[]).forEach(function(r){if(r.date===date)moves.push('🚗'+(r.company||''));});
-    (D.tours||[]).forEach(function(t){if(t.date===date)moves.push('🎫'+(t.tourName||''));});
+    (D.tours||[]).forEach(function(t){if(t.date===date)moves.push('🧭'+(t.tourName||''));});
 
     var dayK=0;
     costItems.forEach(function(c){if(c.date===date)dayK+=toKRW(c.price,c.priceCur,D);});
@@ -1155,18 +1156,24 @@ function tabSummary(root,D){
     T.tbody.appendChild(tr);
   });
 
-  /* 하단 '출발전' 행: 여행 기간에 속하지 않는(또는 날짜 미정) 지출을 모아 보여준다 */
+  /* 하단 '출발전' 행: 사전 결제한 항공/호텔/투어/렌트카 + 출발전 날짜의 지출노트 항목을 모아 보여준다 */
   var preK=0;
   costItems.forEach(function(c){if(c.date===PRE_TRIP)preK+=toKRW(c.price,c.priceCur,D);});
-  var preItems=(D.expenses||[]).filter(function(e){return e.date===PRE_TRIP&&!e.impTab;})
-    .map(function(e){return e.item||e.cat;}).filter(Boolean);
+  var preItems=[];
+  (D.flights||[]).forEach(function(j){if(j.price)preItems.push('✈'+(j.agency||'항공권'));});
+  groupHotelStays(D,dates).forEach(function(g){if(g.h.price)preItems.push('🏨'+(g.h.name||'호텔'));});
+  (D.tours||[]).forEach(function(t){if(t.price)preItems.push('🧭'+(t.tourName||'투어'));});
+  (D.rentalcar||[]).forEach(function(r){if(r.price)preItems.push('🚗'+(r.company||'렌트카'));});
+  (D.expenses||[]).forEach(function(e){
+    if(e.date===PRE_TRIP&&!e.impTab&&(e.item||e.cat))preItems.push(e.item||e.cat);
+  });
   var preTr=el('tr');
   var goExp=function(){setUiTab('expense',PRE_TRIP);show('expenses');};
   var pd0=el('td','rowhead');pd0.style.cursor='pointer';pd0.title='탭하면 지출노트의 출발전 탭으로 이동';
   pd0.textContent='출발전';pd0.addEventListener('click',goExp);
   preTr.appendChild(pd0);
-  var pc1=el('td');var pc1d=el('div');pc1d.style.cssText='padding:8px 7px;font-size:12.5px;';
-  pc1d.textContent=preItems.length?preItems.join(' / '):'-';pc1.appendChild(pc1d);preTr.appendChild(pc1);
+  var pc1=el('td');var pc1d=el('div');pc1d.style.cssText='padding:8px 7px;font-size:12.5px;white-space:pre-line;';
+  pc1d.textContent=preItems.length?preItems.join('\n'):'-';pc1.appendChild(pc1d);preTr.appendChild(pc1);
   var pc2=el('td');var pc2d=el('div');pc2d.style.cssText='padding:8px 7px;font-size:12.5px;';pc2d.textContent='-';pc2.appendChild(pc2d);preTr.appendChild(pc2);
   var pc3=el('td');var pc3d=el('div');pc3d.style.cssText='padding:8px 7px;font-size:11.5px;';pc3d.textContent='-';pc3.appendChild(pc3d);preTr.appendChild(pc3);
   var pc4=el('td','num');var pc4d=el('div');pc4d.style.cssText='padding:8px 7px;font-size:12px;text-align:right;font-family:var(--mono);';
@@ -1284,9 +1291,10 @@ function buildBlock(D,item,st,en,re){
   var timeLbl=el('div','tl-time',minToTime(st)+'–'+minToTime(en));
   blk.appendChild(timeLbl);
 
-  var act=el('input','tl-activity');act.type='text';act.placeholder='내용 입력';act.value=item.activity||'';
+  var act=el('textarea','tl-activity');act.rows=1;act.placeholder='내용 입력';act.value=item.activity||'';
   act.addEventListener('input',function(){item.activity=act.value;saveData(D);});
   act.addEventListener('click',function(e){e.stopPropagation();});
+  act.addEventListener('keydown',function(e){e.stopPropagation();});
   blk.appendChild(act);
 
   var del=el('button','tl-del','✕');
@@ -1745,11 +1753,26 @@ function tabExpenses(root,D){
   root.appendChild(pills);
 
   var items=D.expenses.filter(function(e){return e.date===selDate;});
+  var displayItems=items.slice().sort(function(a,b){
+    var ai=EXP_CATS.indexOf(a.cat);if(ai<0)ai=EXP_CATS.length;
+    var bi=EXP_CATS.indexOf(b.cat);if(bi<0)bi=EXP_CATS.length;
+    return ai-bi;
+  });
+  var catColorMap={};var pi=0;
+  displayItems.forEach(function(item){
+    var cat=(item.cat||'').trim();
+    if(cat&&!(cat in catColorMap)){catColorMap[cat]=RECORD_CAT_PALETTE[pi%RECORD_CAT_PALETTE.length];pi++;}
+  });
+  var prevCat;
   var T=mkTable([{t:'No',w:34},{t:'카테고리',w:98},{t:'사용내역',w:150},{t:'금액',w:138},{t:'결제',w:64},{t:'비고',w:170},{t:'',w:32}]);
   var dayK=0;
-  items.forEach(function(item,idx){
+  displayItems.forEach(function(item,idx){
     dayK+=toKRW(item.price,item.priceCur,D);
     var tr=el('tr');
+    var cat=(item.cat||'').trim();
+    if(idx>0&&cat!==prevCat)tr.classList.add('cat-boundary');
+    prevCat=cat;
+    if(cat&&catColorMap[cat]){tr.classList.add('cat-tinted');tr.style.setProperty('--cat-bg',catColorMap[cat]);}
     var no=el('td','rowhead',String(idx+1));tr.appendChild(no);
     var s=function(full){saveData(D);if(full)re();};
     function td(cls){var c=el('td',cls);tr.appendChild(c);return c;}
