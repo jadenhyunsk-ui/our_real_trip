@@ -1126,7 +1126,7 @@ function tabSummary(root,D){
       });
     });
     (D.rentalcar||[]).forEach(function(r){if(r.date===date)moves.push('🚗'+(r.company||''));});
-    (D.tours||[]).forEach(function(t){if(t.date===date)moves.push('🎫'+(t.tourName||''));});
+    (D.tours||[]).forEach(function(t){if(t.date===date)moves.push('🧭'+(t.tourName||''));});
 
     var dayK=0;
     costItems.forEach(function(c){if(c.date===date)dayK+=toKRW(c.price,c.priceCur,D);});
@@ -1162,7 +1162,7 @@ function tabSummary(root,D){
   var preItems=[];
   (D.flights||[]).forEach(function(j){if(j.price)preItems.push('✈'+(j.agency||'항공권'));});
   groupHotelStays(D,dates).forEach(function(g){if(g.h.price)preItems.push('🏨'+(g.h.name||'호텔'));});
-  (D.tours||[]).forEach(function(t){if(t.price)preItems.push('🎫'+(t.tourName||'투어'));});
+  (D.tours||[]).forEach(function(t){if(t.price)preItems.push('🧭'+(t.tourName||'투어'));});
   (D.rentalcar||[]).forEach(function(r){if(r.price)preItems.push('🚗'+(r.company||'렌트카'));});
   (D.expenses||[]).forEach(function(e){
     if(e.date===PRE_TRIP&&!e.impTab&&(e.item||e.cat))preItems.push(e.item||e.cat);
