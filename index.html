@@ -974,7 +974,6 @@ function setupBar(root,D,onRe){
   return box;
 }
 
-function dayLabel(date,i){return 'D'+(i+1)+'\n'+mmdd(date);}
 
 /* ===== 0. SUMMARY ===== */
 function tabSummary(root,D){
@@ -1014,10 +1013,16 @@ function tabSummary(root,D){
 
     var N=D.summaryNotes[date]=D.summaryNotes[date]||{summary:'',memo:''};
     var tr=el('tr');
-    var d0=el('td','rowhead');d0.style.whiteSpace='pre-line';d0.textContent=dayLabel(date,i)+'\n('+wk(date)+')';
+    var goItin=function(){setUiTab('itin',date);show('itinerary');};
+    var d0=el('td','rowhead');d0.style.whiteSpace='pre-line';d0.style.cursor='pointer';
+    d0.title='탭하면 일정 탭의 이 날짜로 이동';d0.textContent=mmdd(date)+'\n('+wk(date)+')';
+    d0.addEventListener('click',goItin);
     tr.appendChild(d0);
 
-    var c1=el('td');cellArea(c1,N,'summary',itin.join(' / ')||'요약',function(){saveData(D);});tr.appendChild(c1);
+    var c1=el('td');var c1a=cellArea(c1,N,'summary',itin.join(' / ')||'요약',function(){saveData(D);});
+    c1a.title='더블탭하면 일정 탭의 이 날짜로 이동';
+    c1a.addEventListener('dblclick',goItin);
+    tr.appendChild(c1);
     var c2=el('td');c2.appendChild(el('div',null,''));
     c2.firstChild.style.padding='8px 7px';c2.firstChild.style.fontSize='12.5px';
     c2.firstChild.textContent=hotel&&hotel.name?hotel.name:'-';tr.appendChild(c2);
@@ -1466,7 +1471,7 @@ function tabTours(root,D){
   root.appendChild(setupBar(root,D,re));
   root.appendChild(secHead('투어',D.tours.length+'건'));
 
-  var T=mkTable([{t:'날짜',w:112},{t:'지역',w:80},{t:'투어명',w:130},{t:'↗',w:44},
+  var T=mkTable([{t:'날짜',w:112},{t:'지역',w:80},{t:'투어명',w:130},
                  {t:'프로그램',w:130},{t:'예약처',w:96},{t:'금액',w:95},{t:'결제',w:64},{t:'비고',w:170},{t:'',w:32}]);
   var sortedTours=D.tours.slice().sort(function(a,b){return (a.date||'').localeCompare(b.date||'');});
   sortedTours.forEach(function(t){
@@ -1476,12 +1481,6 @@ function tabTours(root,D){
     cellInput(td(),t,'date','date',null,s);
     cellInput(td(),t,'region','text','케언즈',s);
     cellInput(td(),t,'tourName','text','Silverswift',function(full){saveData(D);if(full)re();});
-    var lk=el('td','linkcell');
-    var m=null;
-    (D.tourCompare||[]).forEach(function(c){if(c.name===t.tourName)m=c;});
-    var a=el('a',null,'비교');
-    a.href='DATA/pages/tour-compare.html'+(m?'#'+m.id:'');
-    lk.appendChild(a);tr.appendChild(lk);
     cellInput(td(),t,'program','text','프로그램명',s);
     cellInput(td(),t,'agency','text','예약처',s);
     cellMoney(td(),t,D,s);
