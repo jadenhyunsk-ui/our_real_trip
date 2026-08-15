@@ -540,7 +540,7 @@ function buildAppBar(host){
 function renderCompareTable(root,D,arrayKey,starLabels,L){
   var re=function(){renderCompareTable(root,D,arrayKey,starLabels,L);};
   function blank(){
-    var st={};starLabels.forEach(function(l,li){st[li]=0;});
+    var st={};starLabels.forEach(function(item){st[item[1]]=0;});
     return{id:uid(),selected:false,name:L.newName,agency:'',badge:'',duration:'',points:'',
       rating:'',ratingCount:'',reviewQuote:'',pros:'',cons:'',diveNote:'',
       diveStars:st,tags:'',bookings:[]};
@@ -561,9 +561,9 @@ function renderCompareTable(root,D,arrayKey,starLabels,L){
   if(!arr.length){root.appendChild(el('div','empty','비교할 항목이 없습니다. 위 버튼으로 불러오거나 아래 버튼으로 새로 추가하세요.'));}
   else{
     var cols=[{t:'선정',w:44},{t:L.badgeLabel||'뱃지',w:90},{t:'이름',w:120},{t:L.agencyPh,w:120},
-      {t:L.duration,w:130},{t:L.points,w:130},{t:'평점',w:60},{t:'리뷰수·출처',w:120},{t:'대표 후기',w:150},
+      {t:L.duration,w:130},{t:L.points,w:130},
       {t:'장점',w:150},{t:'단점',w:150}];
-    starLabels.forEach(function(lab){cols.push({t:lab,w:90});});
+    starLabels.forEach(function(item){cols.push({t:item[0],w:90});});
     cols.push({t:'평가 메모',w:150},{t:'태그',w:120},
       {t:'예약처별 가격 (이름|비고|가격|URL, 줄마다 하나씩)',w:220},{t:'',w:32});
     var T=mkTable(cols);
@@ -610,14 +610,12 @@ function renderCompareTable(root,D,arrayKey,starLabels,L){
       cellInput(td(),t,'agency','text',L.agencyPh,sv);
       cellInput(td(),t,'duration','text',null,sv);
       cellInput(td(),t,'points','text',null,sv);
-      cellInput(td(),t,'rating','text','4.5',sv);
-      cellInput(td(),t,'ratingCount','text','리뷰 수/출처',sv);
-      cellArea(td(),t,'reviewQuote','대표 후기',sv);
       cellArea(td(),t,'pros','장점',sv);
       cellArea(td(),t,'cons','단점',sv);
 
       t.diveStars=t.diveStars||{};
-      starLabels.forEach(function(lab,li){
+      starLabels.forEach(function(item){
+        var lab=item[0],li=item[1];
         var c=el('td','star ctr');
         var s=el('select');
         for(var i=0;i<=5;i++){var o=el('option',null,i===0?'—':stars(i));o.value=i;
@@ -703,7 +701,7 @@ var L={newName:'새 투어',agencyPh:'운영사/대행사',duration:'체류시�
     return added;
   }};
 curRerender=renderCompareTable(document.getElementById('cards'),D,'tourCompare',
- ['산호·해양생물 다양성','자유수영/프리다이빙 자유도','초보자 친화도','여유로움(혼잡도 낮음)'],L);
+ [['여유로움(혼잡도 낮음)',3]],L);
 fbInit();
 
 </script>
