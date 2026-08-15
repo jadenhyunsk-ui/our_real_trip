@@ -1155,11 +1155,17 @@ function tabSummary(root,D){
     T.tbody.appendChild(tr);
   });
 
-  /* 하단 '출발전' 행: 여행 기간에 속하지 않는(또는 날짜 미정) 지출을 모아 보여준다 */
+  /* 하단 '출발전' 행: 사전 결제한 항공/호텔/투어/렌트카 + 출발전 날짜의 지출노트 항목을 모아 보여준다 */
   var preK=0;
   costItems.forEach(function(c){if(c.date===PRE_TRIP)preK+=toKRW(c.price,c.priceCur,D);});
-  var preItems=(D.expenses||[]).filter(function(e){return e.date===PRE_TRIP&&!e.impTab;})
-    .map(function(e){return e.item||e.cat;}).filter(Boolean);
+  var preItems=[];
+  (D.flights||[]).forEach(function(j){if(j.price)preItems.push('✈'+(j.agency||'항공권'));});
+  groupHotelStays(D,dates).forEach(function(g){if(g.h.price)preItems.push('🏨'+(g.h.name||'호텔'));});
+  (D.tours||[]).forEach(function(t){if(t.price)preItems.push('🎫'+(t.tourName||'투어'));});
+  (D.rentalcar||[]).forEach(function(r){if(r.price)preItems.push('🚗'+(r.company||'렌트카'));});
+  (D.expenses||[]).forEach(function(e){
+    if(e.date===PRE_TRIP&&!e.impTab&&(e.item||e.cat))preItems.push(e.item||e.cat);
+  });
   var preTr=el('tr');
   var goExp=function(){setUiTab('expense',PRE_TRIP);show('expenses');};
   var pd0=el('td','rowhead');pd0.style.cursor='pointer';pd0.title='탭하면 지출노트의 출발전 탭으로 이동';
