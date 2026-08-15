@@ -411,7 +411,8 @@ function defaultChecklist(){
     mk('서류·예약','항공권 예약 확정 및 좌석 지정'),
     mk('서류·예약','호텔 예약 확인서 저장'),
     mk('서류·예약','여행자보험 가입'),
-    mk('서류·예약','렌터카 예약 및 국제운전면허증 발급'),
+    mk('서류·예약','렌터카 예약'),
+    mk('서류·예약','국제운전면허증 발급'),
     mk('서류·예약','입국 비자 · 전자여행허가(ETA) 확인'),
     mk('서류·예약','환전 준비'),
     mk('짐싸기','수영복 · 래시가드'),
@@ -1992,6 +1993,19 @@ function tabChecklist(root,D){
   var re=function(){tabChecklist(root,D);};
   root.innerHTML='';
   D.checklist=D.checklist||[];
+
+  /* 예전 기본값(렌터카 예약+국제운전면허증 통합 항목)을 두 항목으로 분리 */
+  var migrated=false;
+  for(var mi=0;mi<D.checklist.length;mi++){
+    var mItem=D.checklist[mi];
+    if(mItem.text==='렌터카 예약 및 국제운전면허증 발급'){
+      mItem.text='렌터카 예약';
+      D.checklist.splice(mi+1,0,{id:uid(),category:mItem.category,text:'국제운전면허증 발급',done:mItem.done,memo:''});
+      migrated=true;mi++;
+    }
+  }
+  if(migrated)saveData(D);
+
   var doneCount=D.checklist.filter(function(c){return c.done;}).length;
   root.appendChild(secHead('여행준비 체크리스트',doneCount+'/'+D.checklist.length+' 완료'));
 
