@@ -1230,6 +1230,14 @@ function tabSummary(root,D){
 
 /* ===== 1. 일정 ===== */
 var TL_PX=60; /* 1시간 = 60px (1분 = 1px) */
+/* 내용이 여러 줄이면 블록 높이를 내용에 맞게 늘려서, 줄바꿈한 내용이 가려지지 않고 다 보이게 한다 */
+function resizeBlockForContent(blk){
+  var act=blk.querySelector('.tl-activity');
+  if(act){act.style.height='auto';act.style.height=act.scrollHeight+'px';}
+  var needed=blk.scrollHeight;
+  var curH=parseFloat(blk.style.height)||0;
+  if(needed>curH)blk.style.height=needed+'px';
+}
 function timeToMin(t){if(!t)return null;var p=String(t).split(':');var h=+p[0],m=+p[1]||0;
   if(isNaN(h))return null;return h*60+m;}
 function minToTime(m){m=Math.max(0,Math.min(1439,Math.round(m)));
@@ -1278,6 +1286,7 @@ function tabItinerary(root,D){
   }
 
   root.appendChild(buildTimeline(D,selDate,items,re));
+  Array.prototype.forEach.call(root.querySelectorAll('.tl-item'),resizeBlockForContent);
 }
 
 function buildTimeline(D,date,items,re){
@@ -1333,7 +1342,7 @@ function buildBlock(D,item,st,en,re){
   blk.appendChild(timeLbl);
 
   var act=el('textarea','tl-activity');act.rows=1;act.placeholder='내용 입력';act.value=item.activity||'';
-  act.addEventListener('input',function(){item.activity=act.value;saveData(D);});
+  act.addEventListener('input',function(){item.activity=act.value;saveData(D);resizeBlockForContent(blk);});
   act.addEventListener('click',function(e){e.stopPropagation();});
   act.addEventListener('keydown',function(e){e.stopPropagation();});
   blk.appendChild(act);
