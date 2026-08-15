@@ -1087,9 +1087,8 @@ function tabSummary(root,D){
     var d0=(j.segs&&j.segs[0]&&j.segs[0].date)||'';
     costItems.push({date:assignDate(d0),price:j.price,priceCur:j.priceCur});
   });
-  dates.forEach(function(d){
-    var h=(D.hotels||{})[d];
-    if(h&&h.price)costItems.push({date:d,price:h.price,priceCur:h.priceCur});
+  groupHotelStays(D,dates).forEach(function(g){
+    if(g.h.price)costItems.push({date:g.first,price:g.h.price,priceCur:g.h.priceCur});
   });
   (D.tours||[]).forEach(function(t){
     if(!t.price)return;
@@ -1272,7 +1271,7 @@ function buildTimeline(D,date,items,re){
 
   scroll.appendChild(inner);
   wrap.appendChild(scroll);
-  setTimeout(function(){scroll.scrollTop=Math.max(0,6*TL_PX-30);},0);
+  setTimeout(function(){scroll.scrollTop=6*TL_PX;},30);
   return wrap;
 }
 
@@ -1525,6 +1524,18 @@ function sumBar(label,arr,D){
 /* ===== 3. 호텔 ===== */
 function blankHotelNight(D){return{name:'',place:'',agency:'',price:'',priceCur:localCur(D),payment:'카드',memo:''};}
 function hotelNightSig(h){return [h.name,h.place,h.agency,h.price,h.priceCur,h.payment,h.memo].join('||');}
+/* 연속된 날짜 중 같은 내용(호텔명·장소·예약처·금액·결제·비고)이면 체크인~체크아웃 한 건으로 묶는다.
+   금액은 밤마다 복제 저장되어 있으므로, 합산·가져오기 등에서는 반드시 그룹당 1건으로만 계산해야 한다. */
+function groupHotelStays(D,dates){
+  var groups=[];var cur=null;
+  dates.forEach(function(date){
+    var h=(D.hotels||{})[date]||blankHotelNight(D);
+    var sig=hotelNightSig(h);
+    if(cur&&cur.sig===sig){cur.last=date;cur.nights.push(date);}
+    else{cur={sig:sig,first:date,last:date,nights:[date],h:h};groups.push(cur);}
+  });
+  return groups;
+}
 function tabHotels(root,D){
   var re=function(){tabHotels(root,D);};
   root.innerHTML='';
@@ -1536,15 +1547,7 @@ function tabHotels(root,D){
   D.hotels=D.hotels||{};
   dates.forEach(function(date){D.hotels[date]=D.hotels[date]||blankHotelNight(D);});
 
-  /* 연속된 날짜 중 같은 내용(호텔명·장소·예약처·금액·결제·비고)이면 체크인~체크아웃 한 행으로 묶음 */
-  var groups=[];
-  var cur=null;
-  dates.forEach(function(date){
-    var h=D.hotels[date];
-    var sig=hotelNightSig(h);
-    if(cur&&cur.sig===sig){cur.last=date;cur.nights.push(date);}
-    else{cur={sig:sig,first:date,last:date,nights:[date],h:h};groups.push(cur);}
-  });
+  var groups=groupHotelStays(D,dates);
 
   /* 체크인/체크아웃 날짜를 바꿔서 그룹의 숙박 범위를 다시 설정 (제외된 날짜는 비움) */
   function applyRange(g,newFirst,newLast){
@@ -1655,30 +1658,29 @@ function tabTours(root,D){
 var PRE_TRIP='__pre__';
 /* 항공/호텔/투어/렌트카 탭에 입력된 금액을 지출노트로 가져오기 위한 후보 목록.
    여행 기간에 속한 날짜면 그 날짜로, 아니면(또는 날짜 미정이면) '출발전'으로 자동 배정한다. */
+/* 항공/호텔/투어/렌트카는 보통 출발 전에 미리 결제하므로(실제 이용일과 지출일이 다름),
+   지출노트로 가져올 땐 실제 이용 날짜와 상관없이 항상 '출발전'으로 분류한다. */
 function collectImportableExpenses(D,dates){
   var out=[];
-  function assignDate(d){return (d&&dates.indexOf(d)>-1)?d:PRE_TRIP;}
   (D.flights||[]).forEach(function(j){
     if(!j.price)return;
-    var d0=(j.segs&&j.segs[0]&&j.segs[0].date)||'';
-    out.push({impTab:'flights',impId:j.id,date:assignDate(d0),cat:'항공권',
+    out.push({impTab:'flights',impId:j.id,date:PRE_TRIP,cat:'항공권',
       item:'항공권'+(j.agency?' ('+j.agency+')':''),price:j.price,priceCur:j.priceCur,payment:j.payment||'카드',memo:j.memo||''});
   });
-  dates.forEach(function(d){
-    var h=(D.hotels||{})[d];
-    if(h&&h.price){
-      out.push({impTab:'hotels',impId:d,date:d,cat:'숙박비',
-        item:'호텔'+(h.name?' ('+h.name+')':''),price:h.price,priceCur:h.priceCur,payment:h.payment||'카드',memo:h.memo||''});
+  groupHotelStays(D,dates).forEach(function(g){
+    if(g.h.price){
+      out.push({impTab:'hotels',impId:g.first,date:PRE_TRIP,cat:'숙박비',
+        item:'호텔'+(g.h.name?' ('+g.h.name+')':''),price:g.h.price,priceCur:g.h.priceCur,payment:g.h.payment||'카드',memo:g.h.memo||''});
     }
   });
   (D.tours||[]).forEach(function(t){
     if(!t.price)return;
-    out.push({impTab:'tours',impId:t.id,date:assignDate(t.date),cat:'관광/입장료',
+    out.push({impTab:'tours',impId:t.id,date:PRE_TRIP,cat:'관광/입장료',
       item:'투어'+(t.tourName?' ('+t.tourName+')':''),price:t.price,priceCur:t.priceCur,payment:t.payment||'카드',memo:t.memo||''});
   });
   (D.rentalcar||[]).forEach(function(r){
     if(!r.price)return;
-    out.push({impTab:'rentalcar',impId:r.id,date:assignDate(r.date),cat:'교통',
+    out.push({impTab:'rentalcar',impId:r.id,date:PRE_TRIP,cat:'교통',
       item:'렌트카'+(r.company?' ('+r.company+')':''),price:r.price,priceCur:r.priceCur,payment:r.payment||'카드',memo:r.memo||''});
   });
   return out;
@@ -1727,7 +1729,9 @@ function tabExpenses(root,D){
   root.appendChild(impBtn);
 
   var pillDates=[PRE_TRIP].concat(dates);
-  var selDate=getUiTab('expense',pillDates,dates[0]);
+  var todayStr=fmtLocalDate(new Date());
+  var defaultDate=dates.indexOf(todayStr)>-1?todayStr:PRE_TRIP;
+  var selDate=getUiTab('expense',pillDates,defaultDate);
 
   var pills=el('div','daypills');
   var preBtn=el('button','daypill'+(selDate===PRE_TRIP?' active':''),'출발전');
