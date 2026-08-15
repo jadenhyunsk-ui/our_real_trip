@@ -1407,7 +1407,7 @@ function tabHotels(root,D){
   }
 
   var T=mkTable([{t:'체크인',w:112},{t:'체크아웃',w:112},{t:'호텔명',w:130},{t:'장소',w:100},{t:'예약처',w:96},
-                 {t:'금액',w:95},{t:'결제',w:64},{t:'비고',w:170},{t:'⧉',w:32},{t:'',w:32}]);
+                 {t:'금액',w:95},{t:'결제',w:64},{t:'비고',w:170},{t:'',w:32}]);
   var list=[];
   groups.forEach(function(g){
     var h=g.h;
@@ -1440,15 +1440,6 @@ function tabHotels(root,D){
     cellMoney(td(),h,D,s);
     cellSelect(td(),h,'payment',PAY_OPTS,s);
     cellInput(td(),h,'memo','text','비고',s);
-
-    var cp=el('td','del');
-    var lastIdx=dates.indexOf(g.last);
-    if(lastIdx>-1&&lastIdx<dates.length-1){
-      var b=el('button',null,'⧉');b.style.color='#2E7D5B';b.title='다음 날짜까지 연장';
-      b.onclick=function(){if(applyRange(g,g.first,dates[lastIdx+1])){saveData(D);re();}};
-      cp.appendChild(b);
-    }
-    tr.appendChild(cp);
 
     delCell(tr,function(){
       if(confirm('이 숙박 정보를 지울까요?')){
