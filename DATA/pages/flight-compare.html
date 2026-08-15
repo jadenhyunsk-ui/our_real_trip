@@ -14,9 +14,12 @@
   --line:#DCE8E1;
   --grid:#E4EFE9;
   --navy:#0F3D3A;
+  --steel:#2E5F72;
   --coral:#F2685A;
   --sand:#FCE3DF;
   --green:#2E7D5B;
+  --amber:#B8791F;
+  --gold:#FFC978;
   --red:#C1543A;
   --font:-apple-system,BlinkMacSystemFont,'Apple SD Gothic Neo','Malgun Gothic','Noto Sans KR',sans-serif;
   --mono:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;
@@ -29,17 +32,20 @@ input,select,textarea{font-family:inherit;color:inherit;font-size:13px;}
 a{color:inherit;text-decoration:none;}
 
 /* ===== 헤더 ===== */
-.appbar{background:var(--navy);color:#fff;padding:11px 12px 9px;}
+.appbar{background:linear-gradient(160deg,var(--navy),#0a2a28);color:#fff;padding:11px 12px 9px;}
 .appbar-row{display:flex;justify-content:space-between;align-items:flex-start;gap:6px 8px;flex-wrap:wrap;}
 .appbar-row>div:first-child{flex:1 1 150px;min-width:0;}
 .sync-pill{display:inline-block;max-width:100%;font-size:10px;font-family:var(--mono);
   background:rgba(255,255,255,.1);border:1px solid rgba(255,255,255,.16);padding:3px 8px;border-radius:999px;color:#C6D6E2;
-  white-space:normal;overflow-wrap:break-word;}
+  white-space:normal;overflow-wrap:break-word;transition:background .2s,border-color .2s,color .2s;}
+.sync-pill.ok{background:rgba(46,125,91,.28);border-color:rgba(46,125,91,.45);color:#BFE8D3;}
+.sync-pill.err{background:rgba(193,84,58,.28);border-color:rgba(193,84,58,.45);color:#F3C7BA;}
 .appbar-actions{display:flex;gap:4px;flex:0 0 auto;}
 .ab-btn{font-size:10.5px;font-weight:600;background:rgba(255,255,255,.12);border:1px solid rgba(255,255,255,.18);
   color:#fff;padding:8px 10px;min-height:34px;min-width:34px;border-radius:7px;white-space:nowrap;
   display:flex;align-items:center;justify-content:center;}
 .ab-btn svg{width:15px;height:15px;}
+.ab-btn.excel{background:rgba(30,140,90,.22);border-color:rgba(30,140,90,.4);color:#8CE0B4;}
 
 main{padding:12px 10px;max-width:100%;}
 
@@ -58,7 +64,7 @@ main{padding:12px 10px;max-width:100%;}
 table.grid{border-collapse:collapse;width:100%;}
 table.grid th,table.grid td{border:1px solid var(--grid);padding:0;vertical-align:middle;}
 table.grid thead th{
-  background:var(--navy);color:#fff;font-size:10.5px;font-weight:700;letter-spacing:.02em;
+  background:var(--steel);color:#fff;font-size:10.5px;font-weight:700;letter-spacing:.02em;
   padding:8px 6px;text-align:center;white-space:nowrap;position:sticky;top:0;z-index:2;
 }
 table.grid thead th:first-child{position:sticky;left:0;top:0;z-index:4;}
@@ -69,7 +75,7 @@ table.grid td input,table.grid td select,table.grid td textarea{
 }
 table.grid td textarea{resize:vertical;min-height:34px;line-height:1.4;}
 table.grid td input:focus,table.grid td select:focus,table.grid td textarea:focus{background:#FFF6E9;}
-table.grid td.num input{text-align:right;font-family:var(--mono);}
+table.grid td.num input{text-align:right;font-family:var(--mono);color:var(--amber);font-weight:700;}
 table.grid td.ctr{text-align:center;}
 table.grid td.sel{width:44px;text-align:center;background:#FAF7F1!important;}
 table.grid td.sel input{width:18px;height:18px;accent-color:var(--coral);margin:8px auto;display:block;}
@@ -84,9 +90,11 @@ table.grid td.del button{width:100%;padding:8px 0;color:var(--red);font-size:13p
 .segbtn-row button{width:100%;padding:7px;font-size:11.5px;color:var(--navy);}
 
 /* ===== 버튼 ===== */
-.btn-add{width:100%;padding:10px;font-size:13px;font-weight:700;color:#fff;background:var(--navy);border-radius:8px;margin-top:8px;}
-.btn-apply{width:100%;padding:13px;font-size:14px;font-weight:700;color:#fff;background:var(--green);
-  border-radius:9px;margin-top:8px;box-shadow:0 3px 10px rgba(46,125,91,.22);}
+.btn-add{width:100%;padding:10px;font-size:13px;font-weight:700;color:#fff;
+  background:linear-gradient(135deg,var(--steel),#1f4552);border-radius:8px;margin-top:8px;box-shadow:0 2px 8px rgba(46,95,114,.25);}
+.btn-add.ghost{background:transparent;color:var(--steel);border:1.5px dashed var(--line);box-shadow:none;}
+.btn-apply{width:100%;padding:13px;font-size:14px;font-weight:700;color:#fff;background:linear-gradient(135deg,var(--green),#235e46);
+  border-radius:9px;margin-top:8px;box-shadow:0 4px 12px rgba(46,125,91,.28);}
 .empty{text-align:center;padding:20px 14px;font-size:12.5px;color:var(--muted);
   background:var(--card);border-radius:9px;border:1.5px dashed var(--line);}
 .back{display:inline-block;font-size:12.5px;font-weight:600;color:var(--navy);margin-bottom:11px;}
@@ -110,6 +118,7 @@ table.grid td.del button{width:100%;padding:8px 0;color:var(--red);font-size:13p
 <div id="toast" class="toast">저장됨 ✓</div>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-database-compat.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/exceljs@4.4.0/dist/exceljs.min.js"></script>
 <script>
 /* ===== 저장소 ===== */
 var STORAGE_KEY='tripData_v4';
@@ -154,6 +163,14 @@ function localRate(D){
 }
 function money(n){var v=Number(n);if(isNaN(v)||n===''||n==null)return '';
   return Math.round(v).toLocaleString('ko-KR');}
+function fmtLocalDate(d){
+  var y=d.getFullYear(),m=String(d.getMonth()+1).padStart(2,'0'),dd=String(d.getDate()).padStart(2,'0');
+  return y+'-'+m+'-'+dd;
+}
+function dateRange(s,e){var out=[];if(!s||!e)return out;
+  var d=new Date(s+'T00:00:00'),en=new Date(e+'T00:00:00');
+  if(isNaN(d)||isNaN(en)||d>en)return out;
+  while(d<=en){out.push(fmtLocalDate(d));d.setDate(d.getDate()+1);}return out;}
 
 function defaultTripData(){return{
   meta:{title:'첫 여행',destination:'호주 케언즈',currency:'AUD',rate:920,
@@ -220,6 +237,74 @@ function exportData(){
   var url=URL.createObjectURL(blob);var a=document.createElement('a');
   a.href=url;a.download='trip-data-'+new Date().toISOString().slice(0,16).replace(/[-:T]/g,'')+'.json';
   document.body.appendChild(a);a.click();a.remove();URL.revokeObjectURL(url);
+}
+/* ===== 엑셀(.xlsx) 내보내기 — 탭별 시트 + 원본과 비슷한 스타일 ===== */
+function addExcelSheet(wb,name,headers,rows,moneyColIdx){
+  var ws=wb.addWorksheet(name);
+  var headerRow=ws.addRow(headers);
+  headerRow.eachCell(function(cell){
+    cell.fill={type:'pattern',pattern:'solid',fgColor:{argb:'FF2E5F72'}};
+    cell.font={color:{argb:'FFFFFFFF'},bold:true,size:10};
+    cell.alignment={vertical:'middle',horizontal:'center'};
+  });
+  headerRow.height=20;
+  rows.forEach(function(r,ri){
+    var row=ws.addRow(r);
+    if(ri%2===1){
+      row.eachCell(function(cell){cell.fill={type:'pattern',pattern:'solid',fgColor:{argb:'FFFCFAF5'}};});
+    }
+    if(moneyColIdx!=null){
+      var cell=row.getCell(moneyColIdx+1);
+      cell.font={color:{argb:'FFB8791F'},bold:true};
+      cell.alignment={horizontal:'right'};
+      if(cell.value!=null&&cell.value!==''&&!isNaN(Number(cell.value)))cell.numFmt='#,##0';
+    }
+  });
+  headers.forEach(function(h,i){ws.getColumn(i+1).width=Math.max(10,String(h).length*1.6,14);});
+  ws.views=[{state:'frozen',ySplit:1}];
+  return ws;
+}
+function buildExcelWorkbook(D){
+  var wb=new ExcelJS.Workbook();
+  wb.creator='여행 관리';
+  wb.created=new Date();
+
+  var flightRows=[];
+  (D.flights||[]).forEach(function(j){
+    (j.segs||[]).forEach(function(s,si){
+      flightRows.push([j.tripType,s.date,s.time,s.arriveTime,s.airline,s.flightNo,s.from,s.to,
+        si===0?j.agency:'',si===0?j.price:'',si===0?j.priceCur:'',si===0?j.payment:'',si===0?j.memo:'']);
+    });
+  });
+  addExcelSheet(wb,'항공',['여정','날짜','출발','도착','항공사','편명','출발지','도착지','예약처','금액','통화','결제','비고'],flightRows,9);
+
+  var dates=dateRange(D.meta.startDate,D.meta.endDate);
+  var hotelRows=dates.map(function(d){
+    var h=(D.hotels||{})[d]||{};
+    return [d,h.name||'',h.place||'',h.agency||'',h.price||'',h.priceCur||'',h.payment||'',h.memo||''];
+  });
+  addExcelSheet(wb,'호텔',['일정','호텔명','장소','예약처','금액','통화','결제','비고'],hotelRows,4);
+
+  var tourRows=(D.tours||[]).map(function(t){return [t.date,t.region,t.tourName,t.program,t.agency,t.price,t.priceCur,t.payment,t.memo];});
+  addExcelSheet(wb,'투어',['날짜','지역','투어명','프로그램','예약처','금액','통화','결제','비고'],tourRows,5);
+
+  var expRows=(D.expenses||[]).map(function(e){return [e.date,e.cat,e.item,e.price,e.priceCur,e.payment,e.memo];});
+  addExcelSheet(wb,'지출노트',['날짜','카테고리','사용내역','금액','통화','결제','비고'],expRows,3);
+
+  var rcRows=(D.rentalcar||[]).map(function(r){return [r.date,r.time,r.company,r.carType,r.price,r.priceCur,r.insurance,r.payment,r.memo];});
+  addExcelSheet(wb,'렌트카',['날짜','시간','업체','차종','가격','통화','보험','결제','비고'],rcRows,4);
+
+  return wb;
+}
+function exportExcel(){
+  if(typeof ExcelJS==='undefined'){alert('엑셀 내보내기 기능을 불러오는 중입니다. 인터넷 연결을 확인하고 잠시 후 다시 시도해주세요.');return;}
+  var wb=buildExcelWorkbook(D);
+  wb.xlsx.writeBuffer().then(function(buf){
+    var blob=new Blob([buf],{type:'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'});
+    var url=URL.createObjectURL(blob);var a=document.createElement('a');
+    a.href=url;a.download=(D.meta.title||'여행')+'-'+new Date().toISOString().slice(0,10)+'.xlsx';
+    document.body.appendChild(a);a.click();a.remove();URL.revokeObjectURL(url);
+  }).catch(function(e){console.error(e);alert('엑셀 파일 생성에 실패했습니다.');});
 }
 function importFile(f,cb){
   var r=new FileReader();
@@ -334,9 +419,9 @@ function fbQueueSync(key){
 function updateSyncPill(){
   var pill=document.getElementById('syncPill');
   if(!pill)return;
-  if(fbStatus==='synced')pill.textContent='🟢 Connected';
-  else if(fbStatus==='error')pill.textContent='🔴 Disconnected — 새로고침 해보세요';
-  else pill.textContent='🟡 Connecting…';
+  if(fbStatus==='synced'){pill.textContent='🟢 Connected';pill.className='sync-pill ok';}
+  else if(fbStatus==='error'){pill.textContent='🔴 Disconnected — 새로고침 해보세요';pill.className='sync-pill err';}
+  else{pill.textContent='🟡 Connecting…';pill.className='sync-pill';}
 }
 
 /* ===== DOM 헬퍼 (원래 탭과 동일) ===== */
@@ -410,15 +495,18 @@ function scrollHint(wrap,txt){
 /* ===== 상단바 ===== */
 var ICON_DOWNLOAD='<svg viewBox="0 0 24 24" fill="none"><path d="M12 3V15M7 10L12 15L17 10" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/><path d="M5 19H19" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>';
 var ICON_UPLOAD='<svg viewBox="0 0 24 24" fill="none"><path d="M12 15V3M7 8L12 3L17 8" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/><path d="M5 19H19" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>';
+var ICON_EXCEL='<svg viewBox="0 0 24 24" fill="none"><rect x="3" y="3" width="18" height="18" rx="3" fill="#1D7044"/><path d="M3 9.5H21M3 15H21M9.5 3V21M15 3V21" stroke="#fff" stroke-width="1.3"/></svg>';
 function buildAppBar(host){
   host.innerHTML=
    '<div class="appbar"><div class="appbar-row">'+
      '<div><div class="sync-pill" id="syncPill">Connecting…</div></div>'+
      '<div class="appbar-actions">'+
+       '<button class="ab-btn excel" id="bXls" title="엑셀로 내보내기">'+ICON_EXCEL+'</button>'+
        '<button class="ab-btn" id="bExp" title="내보내기">'+ICON_DOWNLOAD+'</button>'+
        '<button class="ab-btn" id="bImp" title="가져오기">'+ICON_UPLOAD+'</button>'+
        '<input type="file" id="fImp" accept="application/json" hidden></div>'+
    '</div></div>';
+  host.querySelector('#bXls').onclick=exportExcel;
   host.querySelector('#bExp').onclick=exportData;
   host.querySelector('#fImp').onchange=function(e){var f=e.target.files[0];if(f)importFile(f,function(){location.reload();});};
   host.querySelector('#bImp').onclick=function(){host.querySelector('#fImp').click();};
@@ -431,12 +519,38 @@ function blankFlightCompare(){
   return{id:uid(),label:'',selected:false,tripType:'왕복',agency:'',price:'',priceCur:localCur(D),
     payment:'카드',pros:'',cons:'',memo:'',segs:[blankSeg(),blankSeg()]};
 }
+function importFromFlights(D){
+  var existing={};
+  D.flightCompare.forEach(function(c){if(c.importedFrom)existing[c.importedFrom]=true;});
+  var added=0;
+  D.flights.forEach(function(j){
+    if(existing[j.id])return;
+    D.flightCompare.push({
+      id:uid(),importedFrom:j.id,label:j.agency||'(기존 항공편)',selected:true,
+      tripType:j.tripType||'왕복',agency:j.agency||'',price:j.price||'',priceCur:j.priceCur||localCur(D),
+      payment:j.payment||'카드',pros:'',cons:'',memo:j.memo||'',
+      segs:(j.segs||[]).map(function(s){return{id:uid(),date:s.date||'',time:s.time||'',arriveTime:s.arriveTime||'',
+        airline:s.airline||'',flightNo:s.flightNo||'',from:s.from||'',to:s.to||''};})
+    });
+    added++;
+  });
+  return added;
+}
 function renderFlightCompareTable(root,D){
   var re=function(){renderFlightCompareTable(root,D);};
   root.innerHTML='';
   document.getElementById('cnt').textContent=D.flightCompare.length+'건';
 
-  if(!D.flightCompare.length){root.appendChild(el('div','empty','비교할 항공편이 없습니다. 아래 버튼으로 추가하세요.'));}
+  var imp=el('button','btn-add','📥 현재 항공 탭 값 불러오기');
+  imp.onclick=function(){
+    var added=importFromFlights(D);
+    if(!added){alert('이미 모두 불러왔거나, 항공 탭에 입력된 값이 없습니다.');return;}
+    saveData(D);re();
+    alert(added+'개 항공편을 불러와 선정 체크했습니다.');
+  };
+  root.appendChild(imp);
+
+  if(!D.flightCompare.length){root.appendChild(el('div','empty','비교할 항공편이 없습니다. 위 버튼으로 불러오거나 아래 버튼으로 새로 추가하세요.'));}
   else{
     var T=mkTable([
       {t:'선정',w:44},{t:'이름',w:110},{t:'여정',w:66},{t:'날짜',w:112},{t:'출발',w:74},{t:'도착',w:74},
