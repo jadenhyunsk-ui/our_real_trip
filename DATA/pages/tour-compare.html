@@ -593,7 +593,7 @@ function renderCompareTable(root,D,arrayKey,starLabels,L){
   var re=function(){renderCompareTable(root,D,arrayKey,starLabels,L);};
   function blank(){
     var st={};starLabels.forEach(function(item){st[item[1]]=0;});
-    return{id:uid(),selected:false,name:L.newName,agency:'',badge:'',duration:'',points:'',
+    return{id:uid(),selected:false,name:L.newName,agency:'',badge:'',date:'',duration:'',points:'',
       rating:'',ratingCount:'',reviewQuote:'',pros:'',cons:'',diveNote:'',
       diveStars:st,price:'',priceCur:localCur(D)};
   }
@@ -621,7 +621,7 @@ function renderCompareTable(root,D,arrayKey,starLabels,L){
 
   if(!arr.length){root.appendChild(el('div','empty','비교할 항목이 없습니다. 위 버튼으로 불러오거나 아래 버튼으로 새로 추가하세요.'));}
   else{
-    var cols=[{t:'선정',w:44},{t:L.badgeLabel||'뱃지',w:90},{t:'이름',w:120},{t:L.agencyPh,w:120},
+    var cols=[{t:'선정',w:44},{t:L.badgeLabel||'뱃지',w:90},{t:'날짜',w:100},{t:'이름',w:120},{t:L.agencyPh,w:120},
       {t:'투어가격',w:138},
       {t:L.duration,w:130},{t:L.points,w:130},
       {t:'장점',w:150},{t:'단점',w:150}];
@@ -667,6 +667,7 @@ function renderCompareTable(root,D,arrayKey,starLabels,L){
       cs.appendChild(chk);tr.appendChild(cs);
 
       cellInput(td(),t,'badge','text',L.badgePh||'뱃지',sv);
+      cellInput(td(),t,'date','date',null,sv);
       cellInput(td(),t,'name','text',L.newName,sv);
       cellInput(td(),t,'agency','text',L.agencyPh,sv);
       cellMoney(td(),t,D,sv);
@@ -724,17 +725,18 @@ var activeTripId=localStorage.getItem(ACTIVE_KEY);
 if(!activeTripId||!AllData.trips[activeTripId])activeTripId=AllData.tripOrder[0];
 var D=AllData.trips[activeTripId];
 buildAppBar(document.getElementById('appbar'));
-document.getElementById('hintbox').innerHTML='투어 탭과 <b>동일한 표 형식</b>입니다. 여기 <b>이름</b>과 같은 투어명을 4번 탭에 쓰면 「비교」를 눌렀을 때 해당 행으로 이동합니다. <b>투어카테고리</b>가 같으면 같은 옅은 색으로 묶여 표시됩니다. <b>선정</b>에 체크 후 맨 아래 버튼을 누르면 체크된 투어가 투어 탭에 자동으로 추가됩니다.';
+document.getElementById('hintbox').innerHTML='투어 탭과 <b>동일한 표 형식</b>입니다. 여기 <b>이름</b>과 같은 투어명을 4번 탭에 쓰면 「비교」를 눌렀을 때 해당 행으로 이동합니다. <b>카테고리</b>가 같으면 같은 옅은 색으로 묶여 표시됩니다. <b>선정</b>에 체크 후 맨 아래 버튼을 누르면 체크된 투어가 투어 탭에 자동으로 추가됩니다.';
 var L={newName:'새 투어',agencyPh:'운영사/대행사',duration:'체류시간·일정',points:'방문 포인트',
   addLabel:'+ 비교할 투어 추가',applyLabel:'✅ 체크한 투어를 투어 탭에 반영',
   importLabel:'📥 현재 투어 탭 값 불러오기',
-  groupByCategory:true,badgeLabel:'투어카테고리',badgePh:'카테고리 (예: 스노클링, 다이빙)',
+  groupByCategory:true,badgeLabel:'카테고리',badgePh:'카테고리 (예: 스노클링, 다이빙)',
   mainKey:'tours',mainTabHref:'../../index.html#tours',
   applyOne:function(c){
     var target=c.importedFrom?D.tours.filter(function(x){return x.id===c.importedFrom;})[0]:null;
     var t=target||{id:uid(),date:'',region:'',program:''};
     t.tourName=c.name||'';t.agency=c.agency||'';t.price=c.price||'';t.priceCur=c.priceCur||localCur(D);
     t.payment='카드';t.memo=c.diveNote||'';
+    if(c.date)t.date=c.date;
     if(!target)D.tours.push(t);
   },
   importFn:function(D,arr){
@@ -744,7 +746,7 @@ var L={newName:'새 투어',agencyPh:'운영사/대행사',duration:'체류시�
     D.tours.forEach(function(t){
       if(!t.tourName||existing[t.id])return;
       arr.push({id:uid(),importedFrom:t.id,selected:true,name:t.tourName,agency:t.agency||'',badge:'',
-        duration:'',points:t.program||'',rating:'',ratingCount:'',reviewQuote:'',pros:'',cons:'',
+        date:t.date||'',duration:'',points:t.program||'',rating:'',ratingCount:'',reviewQuote:'',pros:'',cons:'',
         diveNote:t.memo||'',diveStars:{0:0,1:0,2:0,3:0},
         price:t.price||'',priceCur:t.priceCur||localCur(D)});
       added++;
