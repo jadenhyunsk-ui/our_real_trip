@@ -112,6 +112,12 @@ main{padding:12px 10px;max-width:100%;}
 .setgrid .sf input,.setgrid .sf select{border:1px solid var(--line);border-radius:6px;padding:7px 8px;
   font-size:13px;background:#FCFAF6;width:100%;outline:none;}
 .setgrid .sf input:focus,.setgrid .sf select:focus{border-color:var(--coral);background:#fff;}
+.cur-field-wrap{display:flex;align-items:center;gap:4px;}
+.cur-field-wrap select{flex:1 1 auto;min-width:0;}
+.btn-addcur,.btn-rmcur{flex:0 0 auto;width:26px;height:26px;border-radius:6px;font-size:13px;font-weight:700;
+  display:flex;align-items:center;justify-content:center;}
+.btn-addcur{background:var(--steel);color:#fff;}
+.btn-rmcur{background:#FCE3DF;color:var(--red);}
 .rate-note{margin-top:6px;font-size:10.5px;color:var(--muted);font-family:var(--mono);}
 
 /* ===== 엑셀형 표 ===== */
@@ -143,7 +149,9 @@ tr.subtotal td{background:var(--sand)!important;font-weight:700;font-size:12px;c
 tr.subtotal td.num{text-align:right;font-family:var(--mono);color:var(--coral);}
 .money-cell{display:flex;align-items:center;width:100%;}
 .money-cell input{flex:1 1 0%!important;min-width:0!important;width:auto!important;text-align:right;font-family:var(--mono);padding-right:4px!important;}
-.money-cell select{width:38px!important;flex:0 0 auto!important;font-size:9px;padding:8px 0!important;color:var(--muted);
+.money-cell input::-webkit-outer-spin-button,.money-cell input::-webkit-inner-spin-button{-webkit-appearance:none;margin:0;}
+.money-cell input[type=number]{-moz-appearance:textfield;}
+.money-cell select{width:auto!important;min-width:0!important;flex:0 0 auto!important;font-size:10px;padding:8px 1px 8px 2px!important;color:var(--muted);
   border-left:1px solid var(--grid)!important;}
 .scroll-hint{font-size:10px;color:var(--muted);font-family:var(--mono);padding:6px 9px;background:#FAF7F1;border-top:1px solid var(--grid);}
 
@@ -300,12 +308,27 @@ function localRate(D){
   if(!r||isNaN(r)||r<=0)r=curInfo(localCur(D)).rate;
   return r;
 }
+/* 통화코드에 해당하는 환율(현지통화/추가통화/기본표 순으로 조회) */
+function rateFor(D,code){
+  if(!code||code==='KRW')return 1;
+  if(code===localCur(D))return localRate(D);
+  var ex=((D.meta&&D.meta.extraCurrencies)||[]).filter(function(e){return e.code===code;})[0];
+  if(ex){var r=Number(ex.rate);if(r&&!isNaN(r)&&r>0)return r;}
+  return curInfo(code).rate;
+}
+/* 셀렉트 드롭다운에 표시할 통화 목록: 현지통화 → 추가통화(최대 2개) → KRW */
+function availableCurrencyCodes(D){
+  var codes=[localCur(D)];
+  ((D.meta&&D.meta.extraCurrencies)||[]).forEach(function(e){if(codes.indexOf(e.code)<0)codes.push(e.code);});
+  if(codes.indexOf('KRW')<0)codes.push('KRW');
+  return codes;
+}
 /* 금액을 원화로 환산 */
 function toKRW(amount,cur,D){
   var v=Number(amount);
   if(!v||isNaN(v))return 0;
   if(cur==='KRW')return v;
-  return v*localRate(D);
+  return v*rateFor(D,cur);
 }
 function money(n){var v=Number(n);if(isNaN(v)||n===''||n==null)return '';
   return Math.round(v).toLocaleString('ko-KR');}
@@ -315,7 +338,7 @@ function moneyCur(n,cur){
 }
 
 function defaultTripData(){return{
-  meta:{title:'첫 여행',destination:'호주 케언즈',currency:'AUD',rate:920,
+  meta:{title:'첫 여행',destination:'호주 케언즈',currency:'AUD',rate:920,extraCurrencies:[],
         startDate:'2026-10-23',endDate:'',updatedAt:''},
   itinerary:[],
   flights:[
@@ -769,7 +792,7 @@ function cellMoney(td,obj,D,onDone){
   i.addEventListener('change',function(){obj.price=i.value;if(onDone)onDone(true);});
   var s=el('select');
   var lc=localCur(D);
-  var opts=(lc==='KRW')?['KRW']:[lc,'KRW'];
+  var opts=availableCurrencyCodes(D);
   if(!obj.priceCur)obj.priceCur=lc;
   if(opts.indexOf(obj.priceCur)<0)opts.push(obj.priceCur);
   opts.forEach(function(c){var n=el('option',null,c);n.value=c;
@@ -952,14 +975,53 @@ function setupBar(root,D,onRe){
   var rate=el('input');rate.type='number';rate.step='0.001';rate.value=localRate(D);
   rate.addEventListener('change',function(){D.meta.rate=rate.value;saveData(D,'meta');onRe();});
 
+  D.meta.extraCurrencies=D.meta.extraCurrencies||[];
+  var curWrap=el('div','cur-field-wrap');
+  curWrap.appendChild(cur);
+  var addCurBtn=el('button','btn-addcur','+');
+  addCurBtn.type='button';addCurBtn.title='화폐 추가';
+  addCurBtn.onclick=function(){
+    if(D.meta.extraCurrencies.length>=2){alert('화폐는 최대 2개까지 추가할 수 있습니다.');return;}
+    var used={};used[localCur(D)]=true;used.KRW=true;
+    D.meta.extraCurrencies.forEach(function(e){used[e.code]=true;});
+    var next=CURRENCIES.filter(function(c){return !used[c.code];})[0];
+    if(!next){alert('추가할 수 있는 화폐가 없습니다.');return;}
+    D.meta.extraCurrencies.push({code:next.code,rate:next.rate});
+    saveData(D,'meta');onRe();
+  };
+  curWrap.appendChild(addCurBtn);
+
+  g.appendChild(sf('여행지',dest));
+  g.appendChild(sf('현지 통화',curWrap));
+  g.appendChild(sf('환율 (1'+localCur(D)+'=원)',rate));
+
+  D.meta.extraCurrencies.forEach(function(ex,exIdx){
+    var exSel=el('select');
+    CURRENCIES.forEach(function(c){
+      var o=el('option',null,c.code+' · '+c.name);o.value=c.code;
+      if(ex.code===c.code)o.selected=true;exSel.appendChild(o);
+    });
+    exSel.addEventListener('change',function(){
+      ex.code=exSel.value;ex.rate=curInfo(ex.code).rate;saveData(D,'meta');onRe();
+    });
+    var exWrap=el('div','cur-field-wrap');
+    exWrap.appendChild(exSel);
+    var rmBtn=el('button','btn-rmcur','✕');
+    rmBtn.type='button';rmBtn.title='이 화폐 삭제';
+    rmBtn.onclick=function(){D.meta.extraCurrencies.splice(exIdx,1);saveData(D,'meta');onRe();};
+    exWrap.appendChild(rmBtn);
+    g.appendChild(sf('추가 통화 '+(exIdx+1),exWrap));
+
+    var exRate=el('input');exRate.type='number';exRate.step='0.001';exRate.value=ex.rate;
+    exRate.addEventListener('change',function(){ex.rate=exRate.value;saveData(D,'meta');onRe();});
+    g.appendChild(sf('환율 (1'+ex.code+'=원)',exRate));
+  });
+
   var sd=el('input');sd.type='date';sd.value=D.meta.startDate||'';
   sd.addEventListener('change',function(){D.meta.startDate=sd.value;saveData(D,'meta');onRe();});
   var ed=el('input');ed.type='date';ed.value=D.meta.endDate||'';
   ed.addEventListener('change',function(){D.meta.endDate=ed.value;saveData(D,'meta');onRe();});
 
-  g.appendChild(sf('여행지',dest));
-  g.appendChild(sf('현지 통화',cur));
-  g.appendChild(sf('환율 (1'+localCur(D)+'=원)',rate));
   g.appendChild(sf('시작일',sd));
   g.appendChild(sf('종료일',ed));
   body.appendChild(g);
@@ -983,7 +1045,7 @@ function tabSummary(root,D){
   root.appendChild(secHead('전체 요약',dates.length?dates.length+'일':''));
   if(!dates.length){root.appendChild(el('div','empty','시작일과 종료일을 입력해주세요.'));return;}
 
-  var T=mkTable([{t:'일정',w:52},{t:'요약',w:130},{t:'호텔',w:100},{t:'이동',w:130},{t:'사용금액',w:76},{t:'비고',w:160}]);
+  var T=mkTable([{t:'일정',w:52},{t:'요약',w:130},{t:'호텔',w:100},{t:'이동',w:130},{t:'사용금액',w:120},{t:'비고',w:160}]);
   var grandK=0;
   D.summaryNotes=D.summaryNotes||{};
 
@@ -1283,7 +1345,7 @@ function tabFlights(root,D){
   var T=mkTable([
     {t:'여정',w:66},{t:'날짜',w:112},{t:'출발',w:74},{t:'도착',w:74},
     {t:'항공사',w:88},{t:'편명',w:70},{t:'출발지',w:96},{t:'도착지',w:96},
-    {t:'예약처',w:110},{t:'금액',w:95},{t:'결제',w:70},{t:'비고',w:170},{t:'',w:32}]);
+    {t:'예약처',w:110},{t:'금액',w:120},{t:'결제',w:70},{t:'비고',w:170},{t:'',w:32}]);
 
   journeys.forEach(function(j){
     j.segs=(j.segs&&j.segs.length)?j.segs:[blankSeg()];
@@ -1364,14 +1426,18 @@ function tabFlights(root,D){
 
 /* 금액 합계 바 (현지통화 + 원화) */
 function sumBar(label,arr,D){
-  var k=0,loc=0,krw=0;
+  var k=0;var byCur={};var order=[];
   arr.forEach(function(x){
     k+=toKRW(x.price,x.priceCur,D);
-    if(x.priceCur==='KRW')krw+=Number(x.price)||0;else loc+=Number(x.price)||0;
+    var v=Number(x.price)||0;
+    if(!v)return;
+    var c=x.priceCur||localCur(D);
+    if(!(c in byCur))order.push(c);
+    byCur[c]=(byCur[c]||0)+v;
   });
-  var parts=[];
-  if(loc)parts.push(curInfo(localCur(D)).sym+money(loc));
-  if(krw)parts.push(money(krw)+'원');
+  var parts=order.map(function(c){
+    return c==='KRW'?money(byCur[c])+'원':curInfo(c).sym+money(byCur[c]);
+  });
   return totalBar(label,money(k)+'원',parts.length?'입력 원본: '+parts.join(' + '):'');
 }
 
@@ -1410,7 +1476,7 @@ function tabHotels(root,D){
   }
 
   var T=mkTable([{t:'체크인',w:112},{t:'체크아웃',w:112},{t:'호텔명',w:130},{t:'장소',w:100},{t:'예약처',w:96},
-                 {t:'금액',w:95},{t:'결제',w:64},{t:'비고',w:170},{t:'',w:32}]);
+                 {t:'금액',w:120},{t:'결제',w:64},{t:'비고',w:170},{t:'',w:32}]);
   var list=[];
   groups.forEach(function(g){
     var h=g.h;
@@ -1470,7 +1536,7 @@ function tabTours(root,D){
   root.appendChild(secHead('투어',D.tours.length+'건'));
 
   var T=mkTable([{t:'날짜',w:112},{t:'지역',w:80},{t:'투어명',w:130},
-                 {t:'프로그램',w:130},{t:'예약처',w:96},{t:'금액',w:95},{t:'결제',w:64},{t:'비고',w:170},{t:'',w:32}]);
+                 {t:'프로그램',w:130},{t:'예약처',w:96},{t:'금액',w:120},{t:'결제',w:64},{t:'비고',w:170},{t:'',w:32}]);
   var sortedTours=D.tours.slice().sort(function(a,b){return (a.date||'').localeCompare(b.date||'');});
   sortedTours.forEach(function(t){
     var tr=el('tr');
@@ -1529,7 +1595,7 @@ function tabExpenses(root,D){
   root.appendChild(pills);
 
   var items=D.expenses.filter(function(e){return e.date===selDate;});
-  var T=mkTable([{t:'No',w:34},{t:'카테고리',w:98},{t:'사용내역',w:150},{t:'금액',w:95},{t:'결제',w:64},{t:'비고',w:170},{t:'',w:32}]);
+  var T=mkTable([{t:'No',w:34},{t:'카테고리',w:98},{t:'사용내역',w:150},{t:'금액',w:120},{t:'결제',w:64},{t:'비고',w:170},{t:'',w:32}]);
   var dayK=0;
   items.forEach(function(item,idx){
     dayK+=toKRW(item.price,item.priceCur,D);
@@ -1566,7 +1632,7 @@ function tabRental(root,D){
   root.appendChild(secHead('렌트카',D.rentalcar.length+'건'));
 
   var T=mkTable([{t:'날짜',w:112},{t:'시간',w:74},{t:'업체',w:110},{t:'차종',w:120},
-                 {t:'가격',w:95},{t:'보험',w:110},{t:'결제',w:64},{t:'비고',w:170},{t:'',w:32}]);
+                 {t:'가격',w:120},{t:'보험',w:110},{t:'결제',w:64},{t:'비고',w:170},{t:'',w:32}]);
   D.rentalcar.forEach(function(r,idx){
     var tr=el('tr');
     var s=function(full){saveData(D);if(full)re();};

@@ -429,6 +429,12 @@ function cellArea(td,obj,key,ph,onDone){
   t.addEventListener('input',function(){obj[key]=t.value;if(onDone)onDone(false);});
   td.appendChild(t);return t;
 }
+/* 셀 안 textarea 기본 높이를 입력된 글자가 다 보이도록 자동 조절 (이후 수동 리사이즈는 그대로 가능) */
+function autoSizeTextareas(wrap){
+  Array.prototype.forEach.call(wrap.querySelectorAll('textarea'),function(t){
+    t.style.height='auto';t.style.height=t.scrollHeight+'px';
+  });
+}
 function delCell(tr,onClick){
   var td=el('td','del');var b=el('button',null,'✕');
   b.onclick=onClick;td.appendChild(b);tr.appendChild(td);
@@ -576,6 +582,7 @@ function renderCompareTable(root,D,arrayKey,starLabels,L){
 
     root.appendChild(T.wrap);
     scrollHint(T.wrap);
+    autoSizeTextareas(T.wrap);
   }
 
   var add=el('button','btn-add',L.addLabel);

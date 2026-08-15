@@ -78,7 +78,9 @@ table.grid td input:focus,table.grid td select:focus,table.grid td textarea:focu
 table.grid td.num input{text-align:right;font-family:var(--mono);color:var(--amber);font-weight:700;}
 .money-cell{display:flex;align-items:center;}
 .money-cell input{flex:1;min-width:0;text-align:right;font-family:var(--mono);}
-.money-cell select{width:54px;flex:0 0 auto;font-size:10.5px;padding:8px 2px!important;color:var(--muted);border-left:1px solid var(--grid)!important;}
+.money-cell input::-webkit-outer-spin-button,.money-cell input::-webkit-inner-spin-button{-webkit-appearance:none;margin:0;}
+.money-cell input[type=number]{-moz-appearance:textfield;}
+.money-cell select{width:auto!important;min-width:0!important;flex:0 0 auto!important;font-size:10px;padding:8px 1px 8px 2px!important;color:var(--muted);border-left:1px solid var(--grid)!important;}
 table.grid td.ctr{text-align:center;}
 table.grid td.sel{width:44px;text-align:center;background:#FAF7F1!important;}
 table.grid td.sel input{width:18px;height:18px;accent-color:var(--coral);margin:8px auto;display:block;}
@@ -155,6 +157,12 @@ function curInfo(code){
   return CURRENCIES[CURRENCIES.length-1];
 }
 function localCur(D){return (D.meta&&D.meta.currency)||'AUD';}
+function availableCurrencyCodes(D){
+  var codes=[localCur(D)];
+  ((D.meta&&D.meta.extraCurrencies)||[]).forEach(function(e){if(codes.indexOf(e.code)<0)codes.push(e.code);});
+  if(codes.indexOf('KRW')<0)codes.push('KRW');
+  return codes;
+}
 function money(n){var v=Number(n);if(isNaN(v)||n===''||n==null)return '';
   return Math.round(v).toLocaleString('ko-KR');}
 function fmtLocalDate(d){
@@ -473,6 +481,12 @@ function cellArea(td,obj,key,ph,onDone){
   t.addEventListener('input',function(){obj[key]=t.value;if(onDone)onDone(false);});
   td.appendChild(t);return t;
 }
+/* 셀 안 textarea 기본 높이를 입력된 글자가 다 보이도록 자동 조절 (이후 수동 리사이즈는 그대로 가능) */
+function autoSizeTextareas(wrap){
+  Array.prototype.forEach.call(wrap.querySelectorAll('textarea'),function(t){
+    t.style.height='auto';t.style.height=t.scrollHeight+'px';
+  });
+}
 function cellMoney(td,obj,D,onDone){
   td.className='num';
   var box=el('div','money-cell');
@@ -482,7 +496,7 @@ function cellMoney(td,obj,D,onDone){
   i.addEventListener('change',function(){obj.price=i.value;if(onDone)onDone(true);});
   var s=el('select');
   var lc=localCur(D);
-  var opts=(lc==='KRW')?['KRW']:[lc,'KRW'];
+  var opts=availableCurrencyCodes(D);
   if(!obj.priceCur)obj.priceCur=lc;
   if(opts.indexOf(obj.priceCur)<0)opts.push(obj.priceCur);
   opts.forEach(function(c){var n=el('option',null,c);n.value=c;
@@ -581,7 +595,7 @@ function renderCompareTable(root,D,arrayKey,starLabels,L){
   if(!arr.length){root.appendChild(el('div','empty','비교할 항목이 없습니다. 위 버튼으로 불러오거나 아래 버튼으로 새로 추가하세요.'));}
   else{
     var cols=[{t:'선정',w:44},{t:L.badgeLabel||'뱃지',w:90},{t:'이름',w:120},{t:L.agencyPh,w:120},
-      {t:'투어가격',w:95},
+      {t:'투어가격',w:120},
       {t:L.duration,w:130},{t:L.points,w:130},
       {t:'장점',w:150},{t:'단점',w:150}];
     starLabels.forEach(function(item){cols.push({t:item[0],w:90});});
@@ -658,6 +672,7 @@ function renderCompareTable(root,D,arrayKey,starLabels,L){
 
     root.appendChild(T.wrap);
     scrollHint(T.wrap);
+    autoSizeTextareas(T.wrap);
   }
 
   var add=el('button','btn-add',L.addLabel);

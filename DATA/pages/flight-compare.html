@@ -83,7 +83,9 @@ table.grid td.del{width:32px;text-align:center;background:#FAF7F1!important;}
 table.grid td.del button{width:100%;padding:8px 0;color:var(--red);font-size:13px;}
 .money-cell{display:flex;align-items:center;}
 .money-cell input{flex:1;min-width:0;text-align:right;font-family:var(--mono);}
-.money-cell select{width:54px;flex:0 0 auto;font-size:10.5px;padding:8px 2px!important;color:var(--muted);
+.money-cell input::-webkit-outer-spin-button,.money-cell input::-webkit-inner-spin-button{-webkit-appearance:none;margin:0;}
+.money-cell input[type=number]{-moz-appearance:textfield;}
+.money-cell select{width:auto!important;min-width:0!important;flex:0 0 auto!important;font-size:10px;padding:8px 1px 8px 2px!important;color:var(--muted);
   border-left:1px solid var(--grid)!important;}
 .scroll-hint{font-size:10px;color:var(--muted);font-family:var(--mono);padding:6px 9px;background:#FAF7F1;border-top:1px solid var(--grid);}
 .segbtn-row td{padding:0!important;}
@@ -156,6 +158,12 @@ function curInfo(code){
   return CURRENCIES[CURRENCIES.length-1];
 }
 function localCur(D){return (D.meta&&D.meta.currency)||'AUD';}
+function availableCurrencyCodes(D){
+  var codes=[localCur(D)];
+  ((D.meta&&D.meta.extraCurrencies)||[]).forEach(function(e){if(codes.indexOf(e.code)<0)codes.push(e.code);});
+  if(codes.indexOf('KRW')<0)codes.push('KRW');
+  return codes;
+}
 function localRate(D){
   var r=Number(D.meta&&D.meta.rate);
   if(!r||isNaN(r)||r<=0)r=curInfo(localCur(D)).rate;
@@ -446,6 +454,12 @@ function cellArea(td,obj,key,ph,onDone){
   t.addEventListener('input',function(){obj[key]=t.value;if(onDone)onDone(false);});
   td.appendChild(t);return t;
 }
+/* 셀 안 textarea 기본 높이를 입력된 글자가 다 보이도록 자동 조절 (이후 수동 리사이즈는 그대로 가능) */
+function autoSizeTextareas(wrap){
+  Array.prototype.forEach.call(wrap.querySelectorAll('textarea'),function(t){
+    t.style.height='auto';t.style.height=t.scrollHeight+'px';
+  });
+}
 function cellMoney(td,obj,D,onDone){
   td.className='num';
   var box=el('div','money-cell');
@@ -455,7 +469,7 @@ function cellMoney(td,obj,D,onDone){
   i.addEventListener('change',function(){obj.price=i.value;if(onDone)onDone(true);});
   var s=el('select');
   var lc=localCur(D);
-  var opts=(lc==='KRW')?['KRW']:[lc,'KRW'];
+  var opts=availableCurrencyCodes(D);
   if(!obj.priceCur)obj.priceCur=lc;
   if(opts.indexOf(obj.priceCur)<0)opts.push(obj.priceCur);
   opts.forEach(function(c){var n=el('option',null,c);n.value=c;
@@ -555,7 +569,7 @@ function renderFlightCompareTable(root,D){
     var T=mkTable([
       {t:'선정',w:44},{t:'이름',w:110},{t:'여정',w:66},{t:'날짜',w:112},{t:'출발',w:74},{t:'도착',w:74},
       {t:'항공사',w:88},{t:'편명',w:70},{t:'출발지',w:96},{t:'도착지',w:96},
-      {t:'예약처',w:110},{t:'금액',w:95},{t:'결제',w:70},{t:'장점',w:140},{t:'단점',w:140},{t:'비고',w:150},{t:'',w:32}]);
+      {t:'예약처',w:110},{t:'금액',w:120},{t:'결제',w:70},{t:'장점',w:140},{t:'단점',w:140},{t:'비고',w:150},{t:'',w:32}]);
 
     D.flightCompare.forEach(function(j){
       j.segs=(j.segs&&j.segs.length)?j.segs:[blankSeg()];
@@ -624,6 +638,7 @@ function renderFlightCompareTable(root,D){
 
     root.appendChild(T.wrap);
     scrollHint(T.wrap);
+    autoSizeTextareas(T.wrap);
   }
 
   var add=el('button','btn-add','+ 비교할 항공편 후보 추가');
