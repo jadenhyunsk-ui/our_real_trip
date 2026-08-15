@@ -487,13 +487,40 @@ function autoSizeTextareas(wrap){
     t.style.height='auto';t.style.height=t.scrollHeight+'px';
   });
 }
+/* 금액 입력칸: 천단위 콤마로 표시하되 실제 값은 콤마 없는 숫자 문자열로 저장 */
+function formatMoneyStr(v){
+  var s=String(v==null?'':v).replace(/[^\d.]/g,'');
+  if(!s)return '';
+  var dot=s.indexOf('.');
+  var intPart=dot>-1?s.slice(0,dot):s;
+  var decPart=dot>-1?s.slice(dot+1).replace(/\./g,''):'';
+  intPart=intPart.replace(/^0+(?=\d)/,'');
+  intPart=intPart.replace(/\B(?=(\d{3})+(?!\d))/g,',');
+  return dot>-1?intPart+'.'+decPart:intPart;
+}
+function parseMoneyStr(v){return String(v==null?'':v).replace(/,/g,'');}
 function cellMoney(td,obj,D,onDone){
   td.className='num';
   var box=el('div','money-cell');
-  var i=el('input');i.type='number';i.inputMode='decimal';i.placeholder='0';
-  i.value=obj.price==null?'':obj.price;
-  i.addEventListener('input',function(){obj.price=i.value;if(onDone)onDone(false);});
-  i.addEventListener('change',function(){obj.price=i.value;if(onDone)onDone(true);});
+  var i=el('input');i.type='text';i.inputMode='decimal';i.placeholder='0';
+  i.value=obj.price==null||obj.price===''?'':formatMoneyStr(obj.price);
+  i.addEventListener('input',function(){
+    var raw=parseMoneyStr(i.value).replace(/[^\d.]/g,'');
+    var firstDot=raw.indexOf('.');
+    if(firstDot>-1)raw=raw.slice(0,firstDot+1)+raw.slice(firstDot+1).replace(/\./g,'');
+    var oldLen=i.value.length;
+    var oldCaret=i.selectionStart==null?oldLen:i.selectionStart;
+    var formatted=formatMoneyStr(raw);
+    i.value=formatted;
+    var newCaret=Math.max(0,Math.min(formatted.length,oldCaret+(formatted.length-oldLen)));
+    try{i.setSelectionRange(newCaret,newCaret);}catch(e){}
+    obj.price=raw;if(onDone)onDone(false);
+  });
+  i.addEventListener('change',function(){
+    var raw=parseMoneyStr(i.value);
+    obj.price=raw;i.value=formatMoneyStr(raw);
+    if(onDone)onDone(true);
+  });
   var s=el('select');
   var lc=localCur(D);
   var opts=availableCurrencyCodes(D);
@@ -595,7 +622,7 @@ function renderCompareTable(root,D,arrayKey,starLabels,L){
   if(!arr.length){root.appendChild(el('div','empty','비교할 항목이 없습니다. 위 버튼으로 불러오거나 아래 버튼으로 새로 추가하세요.'));}
   else{
     var cols=[{t:'선정',w:44},{t:L.badgeLabel||'뱃지',w:90},{t:'이름',w:120},{t:L.agencyPh,w:120},
-      {t:'투어가격',w:120},
+      {t:'투어가격',w:138},
       {t:L.duration,w:130},{t:L.points,w:130},
       {t:'장점',w:150},{t:'단점',w:150}];
     starLabels.forEach(function(item){cols.push({t:item[0],w:90});});

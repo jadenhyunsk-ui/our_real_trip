@@ -79,7 +79,6 @@ table.grid td.num input{text-align:right;font-family:var(--mono);color:var(--amb
 table.grid td.ctr{text-align:center;}
 table.grid td.sel{width:44px;text-align:center;background:#FAF7F1!important;}
 table.grid td.sel input{width:18px;height:18px;accent-color:var(--coral);margin:8px auto;display:block;}
-table.grid td.star select{color:var(--coral);text-align:center;}
 table.grid td.del{width:32px;text-align:center;background:#FAF7F1!important;}
 table.grid td.del button{width:100%;padding:8px 0;color:var(--red);font-size:13px;}
 .scroll-hint{font-size:10px;color:var(--muted);font-family:var(--mono);padding:6px 9px;background:#FAF7F1;border-top:1px solid var(--grid);}
@@ -416,7 +415,6 @@ function updateSyncPill(){
 /* ===== DOM 헬퍼 (원래 탭과 동일) ===== */
 function el(tag,cls,txt){var e=document.createElement(tag);if(cls)e.className=cls;
   if(txt!==undefined)e.textContent=txt;return e;}
-function stars(n){var s='';n=Number(n)||0;for(var i=1;i<=5;i++)s+=(i<=n?'★':'☆');return s;}
 function cellInput(td,obj,key,type,ph,onDone){
   var i=el('input');i.type=type||'text';i.value=obj[key]==null?'':obj[key];
   if(ph)i.placeholder=ph;
@@ -470,15 +468,6 @@ function parsePriceStr(s){
   if(!cur&&/^US\$/.test(symRaw))cur='USD';
   return{amount:amount,cur:cur};
 }
-function bookingsToText(bookings){
-  return (bookings||[]).map(function(b){return [b.name||'',b.note||'',b.price||'',b.url||''].join(' | ');}).join('\n');
-}
-function textToBookings(text){
-  return String(text||'').split('\n').map(function(line){
-    var parts=line.split('|').map(function(s){return s.trim();});
-    return {name:parts[0]||'',note:parts[1]||'',price:parts[2]||'',url:parts[3]||''};
-  }).filter(function(b){return b.name||b.note||b.price||b.url;});
-}
 
 /* ===== 상단바 ===== */
 var ICON_DOWNLOAD='<svg viewBox="0 0 24 24" fill="none"><path d="M12 3V15M7 10L12 15L17 10" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/><path d="M5 19H19" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>';
@@ -502,13 +491,11 @@ function buildAppBar(host){
 }
 
 /* ===== 비교표 (원래 탭과 동일한 표 형식) ===== */
-function renderCompareTable(root,D,arrayKey,starLabels,L){
-  var re=function(){renderCompareTable(root,D,arrayKey,starLabels,L);};
+function renderCompareTable(root,D,arrayKey,L){
+  var re=function(){renderCompareTable(root,D,arrayKey,L);};
   function blank(){
-    var st={};starLabels.forEach(function(l,li){st[li]=0;});
-    return{id:uid(),selected:false,name:L.newName,agency:'',badge:'',duration:'',points:'',
-      rating:'',ratingCount:'',reviewQuote:'',pros:'',cons:'',diveNote:'',
-      diveStars:st,tags:'',bookings:[]};
+    return{id:uid(),selected:false,name:L.newName,rentPeriod:'',rentTime:'',agency:'',duration:'',points:'',
+      priceText:'',pros:'',cons:'',insurance:'',diveNote:''};
   }
   root.innerHTML='';
   var arr=D[arrayKey];
@@ -525,12 +512,10 @@ function renderCompareTable(root,D,arrayKey,starLabels,L){
 
   if(!arr.length){root.appendChild(el('div','empty','비교할 업체가 없습니다. 위 버튼으로 불러오거나 아래 버튼으로 새로 추가하세요.'));}
   else{
-    var cols=[{t:'선정',w:44},{t:'뱃지',w:70},{t:'이름',w:120},{t:L.agencyPh,w:120},
-      {t:L.duration,w:130},{t:L.points,w:130},{t:'평점',w:60},{t:'리뷰수·출처',w:120},{t:'대표 후기',w:150},
-      {t:'장점',w:150},{t:'단점',w:150}];
-    starLabels.forEach(function(lab){cols.push({t:lab,w:90});});
-    cols.push({t:'평가 메모',w:150},{t:'태그',w:120},
-      {t:'예약처별 가격 (이름|비고|가격|URL, 줄마다 하나씩)',w:220},{t:'',w:32});
+    var cols=[{t:'선정',w:44},{t:'대여기간',w:90},{t:'대여시간',w:80},{t:'이름',w:120},{t:L.agencyPh,w:120},
+      {t:L.duration,w:130},{t:L.points,w:110},{t:'가격',w:110},
+      {t:'장점',w:150},{t:'단점',w:150},{t:'보험 보장 범위',w:150},
+      {t:'평가 메모',w:150},{t:'',w:32}];
     var T=mkTable(cols);
 
     arr.forEach(function(t,idx){
@@ -543,36 +528,17 @@ function renderCompareTable(root,D,arrayKey,starLabels,L){
       chk.addEventListener('change',function(){t.selected=chk.checked;saveData(D);});
       cs.appendChild(chk);tr.appendChild(cs);
 
-      cellInput(td(),t,'badge','text','뱃지',sv);
+      cellInput(td(),t,'rentPeriod','text','대여기간',sv);
+      cellInput(td(),t,'rentTime','text','대여시간',sv);
       cellInput(td(),t,'name','text',L.newName,sv);
       cellInput(td(),t,'agency','text',L.agencyPh,sv);
       cellInput(td(),t,'duration','text',null,sv);
       cellInput(td(),t,'points','text',null,sv);
-      cellInput(td(),t,'rating','text','4.5',sv);
-      cellInput(td(),t,'ratingCount','text','리뷰 수/출처',sv);
-      cellArea(td(),t,'reviewQuote','대표 후기',sv);
+      cellInput(td(),t,'priceText','text','가격',sv);
       cellArea(td(),t,'pros','장점',sv);
       cellArea(td(),t,'cons','단점',sv);
-
-      t.diveStars=t.diveStars||{};
-      starLabels.forEach(function(lab,li){
-        var c=el('td','star ctr');
-        var s=el('select');
-        for(var i=0;i<=5;i++){var o=el('option',null,i===0?'—':stars(i));o.value=i;
-          if((t.diveStars[li]||0)===i)o.selected=true;s.appendChild(o);}
-        s.addEventListener('change',function(){t.diveStars[li]=Number(s.value);saveData(D);});
-        c.appendChild(s);tr.appendChild(c);
-      });
-
+      cellArea(td(),t,'insurance','보험 보장 범위',sv);
       cellArea(td(),t,'diveNote','평가 메모',sv);
-      cellInput(td(),t,'tags','text','쉼표로 구분',sv);
-
-      var bkTd=el('td');
-      var bkTa=el('textarea');bkTa.rows=1;bkTa.value=bookingsToText(t.bookings);
-      bkTa.placeholder=L.notePh;
-      bkTa.addEventListener('input',function(){t.bookings=textToBookings(bkTa.value);});
-      bkTa.addEventListener('change',function(){t.bookings=textToBookings(bkTa.value);saveData(D);});
-      bkTd.appendChild(bkTa);tr.appendChild(bkTd);
 
       delCell(tr,function(){
         if(confirm('비교표에서 삭제할까요?')){arr.splice(idx,1);saveData(D);re();}
@@ -593,10 +559,7 @@ function renderCompareTable(root,D,arrayKey,starLabels,L){
   apply.onclick=function(){
     var chosen=arr.filter(function(c){return c.selected;});
     if(!chosen.length){alert('반영할 항목에 체크(선정)해주세요.');return;}
-    chosen.forEach(function(c){
-      var b=(c.bookings&&c.bookings[0])||{};
-      L.applyOne(c,b,parsePriceStr(b.price));
-    });
+    chosen.forEach(function(c){L.applyOne(c);});
     saveData(D,L.mainKey);
     alert(chosen.length+'개 항목이 반영되었습니다.');
     location.href=L.mainTabHref;
@@ -611,16 +574,18 @@ if(!activeTripId||!AllData.trips[activeTripId])activeTripId=AllData.tripOrder[0]
 var D=AllData.trips[activeTripId];
 buildAppBar(document.getElementById('appbar'));
 document.getElementById('hintbox').innerHTML='렌트카 탭과 <b>동일한 표 형식</b>입니다. 업체별 가격·보험 조건·장단점을 비교하세요. <b>선정</b>에 체크 후 맨 아래 버튼을 누르면 체크된 업체가 렌트카 탭에 자동으로 추가됩니다.';
-var L={newName:'새 렌트카 업체',agencyPh:'픽업지점/위치',duration:'대여기간·조건',points:'차종 라인업·포함사항',
-  notePh:'예: Hertz 공홈 | 완전자차 포함 | A$65/일 | https://...',
+var L={newName:'새 렌트카 업체',agencyPh:'픽업/드랍',duration:'대여기간·조건',points:'차종',
   addLabel:'+ 비교할 업체 추가',applyLabel:'✅ 체크한 업체를 렌트카 탭에 반영',
   importLabel:'📥 현재 렌트카 탭 값 불러오기',
   mainKey:'rentalcar',mainTabHref:'../../index.html#rentalcar',
-  applyOne:function(c,b,pp){
+  applyOne:function(c){
     var target=c.importedFrom?D.rentalcar.filter(function(x){return x.id===c.importedFrom;})[0]:null;
     var r=target||{id:uid(),date:'',time:''};
-    r.company=c.name||'';r.carType=c.points||'';r.price=pp.amount||'';r.priceCur=pp.cur||localCur(D);
-    r.insurance=b.note||'';r.payment='카드';r.memo=c.tags||'';
+    var pp=parsePriceStr(c.priceText);
+    r.company=c.name||'';r.carType=c.points||'';
+    r.price=pp.amount||r.price||'';r.priceCur=pp.cur||r.priceCur||localCur(D);
+    r.insurance=c.insurance||'';r.payment='카드';r.memo=c.priceText||'';
+    if(c.rentTime)r.time=c.rentTime;
     if(!target)D.rentalcar.push(r);
   },
   importFn:function(D,arr){
@@ -629,16 +594,15 @@ var L={newName:'새 렌트카 업체',agencyPh:'픽업지점/위치',duration:'�
     var added=0;
     D.rentalcar.forEach(function(r){
       if(!r.company||existing[r.id])return;
-      arr.push({id:uid(),importedFrom:r.id,selected:true,name:r.company,agency:'',badge:'',
-        duration:'',points:r.carType||'',rating:'',ratingCount:'',reviewQuote:'',pros:'',cons:'',
-        diveNote:r.memo||'',diveStars:{0:0,1:0,2:0,3:0},tags:'',
-        bookings:(r.insurance||r.price)?[{name:'',note:r.insurance||'',price:(r.price?r.price+' '+(r.priceCur||''):''),url:''}]:[]});
+      arr.push({id:uid(),importedFrom:r.id,selected:true,name:r.company,rentPeriod:'',rentTime:r.time||'',
+        agency:'',duration:'',points:r.carType||'',
+        priceText:(r.price?r.price+' '+(r.priceCur||''):''),
+        pros:'',cons:'',insurance:r.insurance||'',diveNote:r.memo||''});
       added++;
     });
     return added;
   }};
-curRerender=renderCompareTable(document.getElementById('cards'),D,'rentalCompare',
- ['보험 보장 범위','픽업/반납 편의성','차량 상태·연식','가격 만족도'],L);
+curRerender=renderCompareTable(document.getElementById('cards'),D,'rentalCompare',L);
 fbInit();
 
 </script>
