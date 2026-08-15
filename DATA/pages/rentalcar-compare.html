@@ -610,9 +610,11 @@ var L={newName:'새 렌트카 업체',agencyPh:'픽업지점/위치',duration:'�
   importLabel:'📥 현재 렌트카 탭 값 불러오기',
   mainKey:'rentalcar',mainTabHref:'../../index.html#rentalcar',
   applyOne:function(c,b,pp){
-    D.rentalcar.push({id:uid(),date:'',time:'',company:c.name||'',carType:c.points||'',
-      price:pp.amount||'',priceCur:pp.cur||localCur(D),insurance:b.note||'',
-      payment:'카드',memo:c.tags||''});
+    var target=c.importedFrom?D.rentalcar.filter(function(x){return x.id===c.importedFrom;})[0]:null;
+    var r=target||{id:uid(),date:'',time:''};
+    r.company=c.name||'';r.carType=c.points||'';r.price=pp.amount||'';r.priceCur=pp.cur||localCur(D);
+    r.insurance=b.note||'';r.payment='카드';r.memo=c.tags||'';
+    if(!target)D.rentalcar.push(r);
   },
   importFn:function(D,arr){
     var existing={};

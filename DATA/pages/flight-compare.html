@@ -635,15 +635,18 @@ function renderFlightCompareTable(root,D){
     var chosen=D.flightCompare.filter(function(c){return c.selected;});
     if(!chosen.length){alert('반영할 항목에 체크(선정)해주세요.');return;}
     chosen.forEach(function(c){
-      D.flights.push({id:uid(),tripType:c.tripType||'왕복',agency:c.agency||'',
-        price:c.price||'',priceCur:c.priceCur||localCur(D),payment:c.payment||'카드',memo:c.memo||'',
-        segs:(c.segs&&c.segs.length?c.segs:[blankSeg()]).map(function(s){
-          return{id:uid(),date:s.date||'',time:s.time||'',arriveTime:s.arriveTime||'',
-            airline:s.airline||'',flightNo:s.flightNo||'',from:s.from||'',to:s.to||''};
-        })});
+      var segs=(c.segs&&c.segs.length?c.segs:[blankSeg()]).map(function(s){
+        return{id:uid(),date:s.date||'',time:s.time||'',arriveTime:s.arriveTime||'',
+          airline:s.airline||'',flightNo:s.flightNo||'',from:s.from||'',to:s.to||''};
+      });
+      var target=c.importedFrom?D.flights.filter(function(x){return x.id===c.importedFrom;})[0]:null;
+      var j=target||{id:uid()};
+      j.tripType=c.tripType||'왕복';j.agency=c.agency||'';j.price=c.price||'';j.priceCur=c.priceCur||localCur(D);
+      j.payment=c.payment||'카드';j.memo=c.memo||'';j.segs=segs;
+      if(!target)D.flights.push(j);
     });
     saveData(D,'flights');
-    alert(chosen.length+'개 항공편이 항공 탭에 추가되었습니다.');
+    alert(chosen.length+'개 항공편이 항공 탭에 반영되었습니다.');
     location.href='../../index.html#flights';
   };
   root.appendChild(apply);
