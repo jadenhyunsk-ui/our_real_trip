@@ -21,6 +21,7 @@
   --amber:#B8791F;
   --gold:#FFC978;
   --red:#C1543A;
+  --sat-blue:#2563EB;
   --font:-apple-system,BlinkMacSystemFont,'Apple SD Gothic Neo','Malgun Gothic','Noto Sans KR',sans-serif;
   --mono:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;
 }
@@ -180,6 +181,9 @@ tr.subtotal td.num{text-align:right;font-family:var(--mono);color:var(--coral);}
 .daypill{flex:0 0 auto;font-size:12px;font-weight:600;color:var(--navy);background:var(--card);
   border:1px solid var(--line);padding:8px 13px;border-radius:20px;white-space:nowrap;}
 .daypill.active{background:var(--coral);color:#fff;border-color:var(--coral);}
+.wk-sat{color:var(--sat-blue);}
+.wk-sun{color:var(--red);}
+.daypill.active .wk-sat,.daypill.active .wk-sun{color:#fff;}
 
 /* ===== 타임라인 (일정) ===== */
 .tl-undated{background:var(--card);border:1px solid var(--line);border-radius:9px;padding:9px 10px;margin-bottom:11px;}
@@ -638,7 +642,8 @@ function dateRange(s,e){var out=[];if(!s||!e)return out;
   if(isNaN(d)||isNaN(en)||d>en)return out;
   while(d<=en){out.push(fmtLocalDate(d));d.setDate(d.getDate()+1);}return out;}
 function wk(s){return ['일','월','화','수','목','금','토'][new Date(s+'T00:00:00').getDay()];}
-function mmdd(s){return s?s.slice(5).replace('-','.'):'';}
+function wkClass(w){return w==='토'?'wk-sat':(w==='일'?'wk-sun':'');}
+function mmdd(s){return s?s.slice(2,4)+'.'+s.slice(5,7)+'.'+s.slice(8,10):'';}
 function nextDay(s){var d=new Date(s+'T00:00:00');d.setDate(d.getDate()+1);return fmtLocalDate(d);}
 function dayBefore(s){var d=new Date(s+'T00:00:00');d.setDate(d.getDate()-1);return fmtLocalDate(d);}
 
@@ -1197,8 +1202,10 @@ function tabSummary(root,D){
     var N=D.summaryNotes[date]=D.summaryNotes[date]||{summary:'',memo:''};
     var tr=el('tr');
     var goItin=function(){setUiTab('itin',date);show('itinerary');};
-    var d0=el('td','rowhead');d0.style.whiteSpace='pre-line';d0.style.cursor='pointer';
-    d0.title='탭하면 일정 탭의 이 날짜로 이동';d0.textContent=mmdd(date)+'\n('+wk(date)+')';
+    var d0=el('td','rowhead');d0.style.cursor='pointer';
+    d0.title='탭하면 일정 탭의 이 날짜로 이동';
+    var dWk=wk(date);
+    d0.innerHTML=mmdd(date)+'<br>(<span class="'+wkClass(dWk)+'">'+dWk+'</span>)';
     d0.addEventListener('click',goItin);
     tr.appendChild(d0);
 
@@ -1279,7 +1286,9 @@ function tabItinerary(root,D){
 
   var pills=el('div','daypills');
   dates.forEach(function(date,i){
-    var b=el('button','daypill'+(date===selDate?' active':''),mmdd(date)+' ('+wk(date)+')');
+    var b=el('button','daypill'+(date===selDate?' active':''));
+    var bWk=wk(date);
+    b.innerHTML=mmdd(date)+' (<span class="'+wkClass(bWk)+'">'+bWk+'</span>)';
     b.onclick=function(){setUiTab('itin',date);re();};
     pills.appendChild(b);
   });
