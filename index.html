@@ -2097,7 +2097,7 @@ function tabChecklist(root,D){
     chk.addEventListener('change',function(){item.done=chk.checked;saveData(D);re();});
     cs.appendChild(chk);tr.appendChild(cs);
 
-    cellInput(td(),item,'category','text','카테고리',s);
+    cellSelect(td(),item,'category',CHECKLIST_CATS,s);
     cellInput(td(),item,'text','text','항목',s);
     cellInput(td(),item,'memo','text','비고',s);
     delCell(tr,function(){
