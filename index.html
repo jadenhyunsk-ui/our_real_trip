@@ -156,6 +156,8 @@ table.grid td.rowhead{
   text-align:center;padding:6px 4px;white-space:nowrap;position:sticky;left:0;z-index:1;
 }
 table.grid td.rowhead input{text-align:center;font-size:11px;font-weight:700;color:var(--navy);padding:6px 2px;background:transparent;}
+table.grid td.rowhead input::-webkit-outer-spin-button,table.grid td.rowhead input::-webkit-inner-spin-button{-webkit-appearance:none;margin:0;}
+table.grid td.rowhead input[type=number]{-moz-appearance:textfield;}
 table.grid td.del{width:32px;text-align:center;background:#FAF7F1!important;}
 table.grid td.del button{width:100%;padding:8px 0;color:var(--red);font-size:13px;}
 table.grid tbody tr.cat-tinted td{background:var(--cat-bg)!important;}
@@ -1930,15 +1932,32 @@ function tabExpenses(root,D){
     if(item.no===undefined||item.no===null||item.no===''){item.no=idx+1;needMigrate=true;}
   });
   if(needMigrate)saveData(D);
+  var displayItems=items.slice().sort(function(a,b){return (Number(a.no)||0)-(Number(b.no)||0);});
 
   var T=mkTable([{t:'No',w:34},{t:'카테고리',w:88},{t:'사용내역',w:165},{t:'금액',w:120},{t:'결제',w:58},{t:'비고',w:195},{t:'',w:32}]);
   var dayK=0;
-  items.forEach(function(item){
+  displayItems.forEach(function(item){
     dayK+=toKRW(item.price,item.priceCur,D);
     var tr=el('tr');
     var s=function(full){saveData(D);if(full)re();};
     function td(cls){var c=el('td',cls);tr.appendChild(c);return c;}
-    cellInput(td('rowhead'),item,'no','number',null,s);
+
+    var noTd=td('rowhead');
+    var noInput=el('input');noInput.type='number';noInput.value=item.no==null?'':item.no;
+    var prevNo=item.no;
+    noInput.addEventListener('input',function(){item.no=noInput.value;saveData(D);});
+    noInput.addEventListener('change',function(){
+      var newNo=Number(noInput.value);
+      if(noInput.value===''||isNaN(newNo)){item.no=prevNo;saveData(D);re();return;}
+      item.no=newNo;
+      var dup=items.some(function(it){return it!==item&&Number(it.no)===newNo;});
+      if(dup&&confirm('이미 No '+newNo+'가 있습니다. 기존 항목들을 뒤로 밀고 순서를 조정할까요?')){
+        items.forEach(function(it){if(it!==item&&Number(it.no)>=newNo)it.no=Number(it.no)+1;});
+      }
+      saveData(D);re();
+    });
+    noTd.appendChild(noInput);
+
     cellSelect(td(),item,'cat',EXP_CATS,s);
     cellInput(td(),item,'item','text','사용내역',s);
     cellMoney(td(),item,D,s);
