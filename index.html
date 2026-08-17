@@ -646,7 +646,9 @@ function dateRange(s,e){var out=[];if(!s||!e)return out;
   while(d<=en){out.push(fmtLocalDate(d));d.setDate(d.getDate()+1);}return out;}
 function wk(s){return ['일','월','화','수','목','금','토'][new Date(s+'T00:00:00').getDay()];}
 function wkClass(w){return w==='토'?'wk-sat':(w==='일'?'wk-sun':'');}
-function mmdd(s){return s?s.slice(5,7)+'.'+s.slice(8,10):'';}
+function mmdd(s){return s?s.slice(5,7)+'/'+s.slice(8,10):'';}
+/* 여행 설정 요약·여행 이름에서만 쓰는, 연도를 포함한 날짜 표기 */
+function mmddFull(s){return s?s.slice(0,4)+'.'+s.slice(5,7)+'.'+s.slice(8,10):'';}
 function nextDay(s){var d=new Date(s+'T00:00:00');d.setDate(d.getDate()+1);return fmtLocalDate(d);}
 function dayBefore(s){var d=new Date(s+'T00:00:00');d.setDate(d.getDate()-1);return fmtLocalDate(d);}
 
@@ -960,7 +962,7 @@ function tripDisplayName(t){
   var parts=[];
   if(t.meta&&t.meta.destination)parts.push(t.meta.destination);
   if(t.meta&&t.meta.startDate){
-    parts.push(mmdd(t.meta.startDate)+(t.meta.endDate?'~'+mmdd(t.meta.endDate):''));
+    parts.push(mmddFull(t.meta.startDate)+(t.meta.endDate?'~'+mmddFull(t.meta.endDate):''));
   }
   return parts.length?title+'('+parts.join(', ')+')':title;
 }
@@ -991,7 +993,7 @@ function openTripSwitcher(){
     nameWrap.appendChild(nameInp);
     var capParts=[];
     if(t.meta.destination)capParts.push(t.meta.destination);
-    if(t.meta.startDate)capParts.push(mmdd(t.meta.startDate)+(t.meta.endDate?'~'+mmdd(t.meta.endDate):''));
+    if(t.meta.startDate)capParts.push(mmddFull(t.meta.startDate)+(t.meta.endDate?'~'+mmddFull(t.meta.endDate):''));
     if(capParts.length)nameWrap.appendChild(el('div','trip-row-cap',capParts.join(', ')));
     row.appendChild(nameWrap);
     var selBtn=el('button','trip-row-select',tid===activeTripId?'보는 중':'선택');
@@ -1052,7 +1054,7 @@ function setupBar(root,D,onRe){
   var titleWrap=el('div','setbar-title');
   titleWrap.appendChild(document.createTextNode('여행 설정'));
   var sumParts=[D.meta.destination||'여행지 미입력',localCur(D)];
-  if(D.meta.startDate)sumParts.push(mmdd(D.meta.startDate)+(D.meta.endDate?'~'+mmdd(D.meta.endDate):''));
+  if(D.meta.startDate)sumParts.push(mmddFull(D.meta.startDate)+(D.meta.endDate?'~'+mmddFull(D.meta.endDate):''));
   titleWrap.appendChild(el('span','setbar-summary',sumParts.join(' · ')));
   head.appendChild(titleWrap);
   var swLabel=el('label','ios-switch');
@@ -1881,7 +1883,9 @@ function tabExpenses(root,D){
   preBtn.onclick=function(){setUiTab('expense',PRE_TRIP);re();};
   pills.appendChild(preBtn);
   dates.forEach(function(date,i){
-    var b=el('button','daypill'+(date===selDate?' active':''),mmdd(date)+' ('+wk(date)+')');
+    var b=el('button','daypill'+(date===selDate?' active':''));
+    var bWk=wk(date);
+    b.innerHTML='<span class="'+wkClass(bWk)+'">'+mmdd(date)+' ('+bWk+')</span>';
     b.onclick=function(){setUiTab('expense',date);re();};
     pills.appendChild(b);
   });
