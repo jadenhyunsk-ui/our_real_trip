@@ -245,6 +245,7 @@ tr.subtotal td.num{text-align:right;font-family:var(--mono);color:var(--coral);}
 <div id="toast" class="toast">저장됨 ✓</div>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-database-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-storage-compat.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/exceljs@4.4.0/dist/exceljs.min.js"></script>
 <script>
 /* ===== 저장소 ===== */
@@ -692,12 +693,14 @@ document.addEventListener('focusout',function(){
   if(pendingRerender){pendingRerender=false;setTimeout(rerenderNow,60);}
 },true);
 
+var fbStorage=null;
 function fbInit(){
   try{
     if(typeof firebase==='undefined'){fbStatus='error';updateSyncPill();return;}
     firebase.initializeApp(firebaseConfig);
     fbRef=firebase.database().ref('trip');
     fbRef.on('value',onFbValue,function(err){fbStatus='error';console.error('firebase',err);updateSyncPill();});
+    try{if(firebase.storage)fbStorage=firebase.storage();}catch(se){console.error('storage init',se);}
   }catch(e){console.error(e);fbStatus='error';updateSyncPill();}
 }
 function onFbValue(snap){
@@ -1926,6 +1929,31 @@ function tabRental(root,D){
   root.appendChild(b2);
 }
 
+/* 링크/이미지 기록 - 이미지를 Firebase Storage에 올리고 가족 모두가 볼 수 있는 링크(imageUrl)를 저장 */
+function startRecordUpload(item,f,ic,re){
+  if(!fbStorage){alert('이미지 업로드 기능을 사용할 수 없습니다.\nFirebase Storage 설정이 필요합니다 (README 참고).');return;}
+  if(f.size>10*1024*1024){alert('이미지 용량이 너무 큽니다. 10MB 이하 파일만 올릴 수 있어요.');return;}
+  ic.innerHTML='';
+  var prog=el('div',null,'업로드 중... 0%');
+  prog.style.cssText='padding:8px 7px;font-size:10.5px;color:var(--muted);';
+  ic.appendChild(prog);
+  var path='records/'+uid()+'_'+f.name;
+  var task=fbStorage.ref().child(path).put(f);
+  task.on('state_changed',function(snap){
+    var pct=Math.round((snap.bytesTransferred/snap.totalBytes)*100);
+    prog.textContent='업로드 중... '+pct+'%';
+  },function(err){
+    console.error(err);
+    alert('이미지 업로드에 실패했습니다: '+err.message);
+    re();
+  },function(){
+    task.snapshot.ref.getDownloadURL().then(function(url){
+      item.imageFile=f.name;item.imageUrl=url;item.imagePath=path;
+      saveData(D);re();
+    });
+  });
+}
+
 /* ===== 7. 링크/이미지 기록 ===== */
 var RECORD_CAT_PALETTE=['#EAF3FB','#EAF7EE','#FDF3E4','#F5EEFB','#FDEAF0','#EAFBF7','#F7F3E4','#F3F0F5'];
 function tabRecords(root,D,key,title){
@@ -1964,25 +1992,29 @@ function tabRecords(root,D,key,title){
     cellInput(td(),item,'link','text','https://...',s);
 
     var ic=el('td');
-    if(item.imageFile){
-      var ia=el('a',null,'🖼 '+item.imageFile);
-      ia.href='DATA/이미지/'+item.imageFile;ia.target='_blank';
+    if(item.imageUrl){
+      var ia=el('a',null,'🖼 '+(item.imageFile||'이미지 열기'));
+      ia.href=item.imageUrl;ia.target='_blank';
       ia.style.cssText='display:block;padding:8px 7px;font-size:11.5px;color:var(--green);text-decoration:underline;word-break:break-all;';
       ic.appendChild(ia);
       var rm=el('button',null,'파일 변경');
       rm.style.cssText='display:block;width:100%;padding:4px;font-size:10px;color:var(--muted);';
-      rm.onclick=function(){item.imageFile='';saveData(D);re();};
+      rm.onclick=function(){
+        if(item.imagePath&&fbStorage)fbStorage.ref().child(item.imagePath).delete().catch(function(){});
+        item.imageFile='';item.imageUrl='';item.imagePath='';saveData(D);re();
+      };
       ic.appendChild(rm);
     }else{
+      if(item.imageFile){
+        var warn=el('div',null,'⚠ '+item.imageFile+' (다시 올려주세요)');
+        warn.style.cssText='padding:6px 7px 2px;font-size:10px;color:var(--red);word-break:break-all;';
+        ic.appendChild(warn);
+      }
       var fi=el('input');fi.type='file';fi.accept='image/*';
       fi.style.cssText='padding:6px 5px;font-size:10.5px;';
       fi.addEventListener('change',function(e){
         var f=e.target.files[0];if(!f)return;
-        item.imageFile=f.name;saveData(D);
-        var u=URL.createObjectURL(f);var a2=el('a');a2.href=u;a2.download=f.name;
-        document.body.appendChild(a2);a2.click();a2.remove();URL.revokeObjectURL(u);
-        alert('"'+f.name+'" 다운로드됨.\nDATA/이미지 폴더로 옮기면 링크로 열립니다.');
-        re();
+        startRecordUpload(item,f,ic,re);
       });
       ic.appendChild(fi);
     }
