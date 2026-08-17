@@ -1535,9 +1535,9 @@ function tabFlights(root,D){
   });
 
   var T=mkTable([
-    {t:'여정',w:60},{t:'날짜',w:112},{t:'출발',w:74},{t:'도착',w:74},
-    {t:'항공사',w:80},{t:'편명',w:64},{t:'출발지',w:82},{t:'도착지',w:82},
-    {t:'예약처',w:90},{t:'금액',w:138},{t:'결제',w:64},{t:'비고',w:120},{t:'',w:32}]);
+    {t:'여정',w:55},{t:'날짜',w:112},{t:'출발',w:74},{t:'도착',w:74},
+    {t:'항공사',w:66},{t:'편명',w:56},{t:'출발지',w:90},{t:'도착지',w:90},
+    {t:'예약처',w:66},{t:'금액',w:120},{t:'결제',w:58},{t:'비고',w:186},{t:'',w:32}]);
 
   journeys.forEach(function(j){
     j.segs=(j.segs&&j.segs.length)?j.segs:[blankSeg()];
@@ -1684,8 +1684,8 @@ function tabHotels(root,D){
     return true;
   }
 
-  var T=mkTable([{t:'체크인',w:112},{t:'체크아웃',w:112},{t:'호텔명',w:110},{t:'장소',w:85},{t:'예약처',w:85},
-                 {t:'금액',w:138},{t:'결제',w:64},{t:'비고',w:120},{t:'',w:32}]);
+  var T=mkTable([{t:'체크인',w:112},{t:'체크아웃',w:112},{t:'호텔명',w:168},{t:'장소',w:88},{t:'예약처',w:90},
+                 {t:'금액',w:120},{t:'결제',w:58},{t:'비고',w:150},{t:'',w:32}]);
   var list=[];
   groups.forEach(function(g){
     var h=g.h;
@@ -1744,8 +1744,8 @@ function tabTours(root,D){
   root.appendChild(setupBar(root,D,re));
   root.appendChild(secHead('투어',D.tours.length+'건'));
 
-  var T=mkTable([{t:'날짜',w:112},{t:'지역',w:70},{t:'투어명',w:110},
-                 {t:'프로그램',w:100},{t:'예약처',w:85},{t:'금액',w:138},{t:'결제',w:64},{t:'비고',w:120},{t:'',w:32}]);
+  var T=mkTable([{t:'날짜',w:112},{t:'지역',w:88},{t:'투어명',w:170},
+                 {t:'프로그램',w:48},{t:'예약처',w:52},{t:'금액',w:120},{t:'결제',w:58},{t:'비고',w:191},{t:'',w:32}]);
   var sortedTours=D.tours.slice().sort(function(a,b){return (a.date||'').localeCompare(b.date||'');});
   sortedTours.forEach(function(t){
     var tr=el('tr');
@@ -1881,7 +1881,7 @@ function tabExpenses(root,D){
     if(cat&&!(cat in catColorMap)){catColorMap[cat]=RECORD_CAT_PALETTE[pi%RECORD_CAT_PALETTE.length];pi++;}
   });
   var prevCat;
-  var T=mkTable([{t:'No',w:34},{t:'카테고리',w:85},{t:'사용내역',w:130},{t:'금액',w:138},{t:'결제',w:64},{t:'비고',w:130},{t:'',w:32}]);
+  var T=mkTable([{t:'No',w:34},{t:'카테고리',w:88},{t:'사용내역',w:165},{t:'금액',w:120},{t:'결제',w:58},{t:'비고',w:195},{t:'',w:32}]);
   var dayK=0;
   displayItems.forEach(function(item,idx){
     dayK+=toKRW(item.price,item.priceCur,D);
@@ -1921,8 +1921,8 @@ function tabRental(root,D){
   root.appendChild(setupBar(root,D,re));
   root.appendChild(secHead('렌트카',D.rentalcar.length+'건'));
 
-  var T=mkTable([{t:'날짜',w:112},{t:'시간',w:74},{t:'업체',w:95},{t:'차종',w:95},
-                 {t:'가격',w:138},{t:'보험',w:90},{t:'결제',w:64},{t:'비고',w:120},{t:'',w:32}]);
+  var T=mkTable([{t:'날짜',w:112},{t:'시간',w:74},{t:'업체',w:95},{t:'차종',w:100},
+                 {t:'가격',w:120},{t:'보험',w:80},{t:'결제',w:58},{t:'비고',w:179},{t:'',w:32}]);
   D.rentalcar.forEach(function(r,idx){
     var tr=el('tr');
     var s=function(full){saveData(D);if(full)re();};

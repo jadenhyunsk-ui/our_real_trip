@@ -609,7 +609,7 @@ function renderFlightCompareTable(root,D){
     var T=mkTable([
       {t:'선정',w:44},{t:'이름',w:110},{t:'여정',w:66},{t:'날짜',w:112},{t:'출발',w:74},{t:'도착',w:74},
       {t:'항공사',w:88},{t:'편명',w:70},{t:'출발지',w:96},{t:'도착지',w:96},
-      {t:'예약처',w:110},{t:'금액',w:138},{t:'결제',w:70},{t:'장점',w:140},{t:'단점',w:140},{t:'비고',w:150},{t:'',w:32}]);
+      {t:'예약처',w:90},{t:'금액',w:120},{t:'결제',w:58},{t:'장점',w:140},{t:'단점',w:140},{t:'비고',w:150},{t:'',w:32}]);
 
     D.flightCompare.forEach(function(j){
       j.segs=(j.segs&&j.segs.length)?j.segs:[blankSeg()];
