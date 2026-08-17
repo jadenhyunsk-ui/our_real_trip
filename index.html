@@ -1208,7 +1208,7 @@ function tabSummary(root,D){
     var d0=el('td','rowhead');d0.style.cursor='pointer';
     d0.title='탭하면 일정 탭의 이 날짜로 이동';
     var dWk=wk(date);
-    d0.innerHTML=mmdd(date)+'<br>(<span class="'+wkClass(dWk)+'">'+dWk+'</span>)';
+    d0.innerHTML='<span class="'+wkClass(dWk)+'">'+mmdd(date)+'<br>('+dWk+')</span>';
     d0.addEventListener('click',goItin);
     tr.appendChild(d0);
 
@@ -1298,7 +1298,7 @@ function tabItinerary(root,D){
   dates.forEach(function(date,i){
     var b=el('button','daypill'+(date===selDate?' active':''));
     var bWk=wk(date);
-    b.innerHTML=mmdd(date)+' (<span class="'+wkClass(bWk)+'">'+bWk+'</span>)';
+    b.innerHTML='<span class="'+wkClass(bWk)+'">'+mmdd(date)+'</span>';
     b.onclick=function(){setUiTab('itin',date);re();};
     pills.appendChild(b);
   });
