@@ -44,8 +44,10 @@ a{color:inherit;text-decoration:none;}
 .trip-row{display:flex;align-items:center;gap:6px;padding:7px 0;border-bottom:1px solid var(--grid);}
 .trip-row:last-child{border-bottom:none;}
 .trip-row.active .trip-row-name{color:var(--coral);font-weight:700;}
-.trip-row-name{flex:1;min-width:0;border:1px solid var(--line);border-radius:6px;padding:7px 8px;
+.trip-row-namewrap{flex:1;min-width:0;display:flex;flex-direction:column;gap:2px;}
+.trip-row-name{width:100%;border:1px solid var(--line);border-radius:6px;padding:7px 8px;
   font-size:13px;background:#FCFAF6;}
+.trip-row-cap{font-size:10px;color:var(--muted);padding-left:2px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
 .trip-row-select{flex:0 0 auto;font-size:11px;font-weight:700;color:#fff;background:var(--navy);
   border-radius:6px;padding:7px 10px;white-space:nowrap;}
 .trip-row-select:disabled{background:var(--sand);color:var(--muted);}
@@ -644,7 +646,7 @@ function dateRange(s,e){var out=[];if(!s||!e)return out;
   while(d<=en){out.push(fmtLocalDate(d));d.setDate(d.getDate()+1);}return out;}
 function wk(s){return ['일','월','화','수','목','금','토'][new Date(s+'T00:00:00').getDay()];}
 function wkClass(w){return w==='토'?'wk-sat':(w==='일'?'wk-sun':'');}
-function mmdd(s){return s?"'"+s.slice(2,4)+'.'+s.slice(5,7)+'.'+s.slice(8,10):'';}
+function mmdd(s){return s?s.slice(5,7)+'.'+s.slice(8,10):'';}
 function nextDay(s){var d=new Date(s+'T00:00:00');d.setDate(d.getDate()+1);return fmtLocalDate(d);}
 function dayBefore(s){var d=new Date(s+'T00:00:00');d.setDate(d.getDate()-1);return fmtLocalDate(d);}
 
@@ -952,11 +954,21 @@ function buildAppBar(host){
 }
 
 /* ===== 여행 선택 바 ===== */
+/* 여행 이름(여행지, 시작일~종료일) 형태로 자동 표기 */
+function tripDisplayName(t){
+  var title=(t.meta&&t.meta.title)||'제목 없는 여행';
+  var parts=[];
+  if(t.meta&&t.meta.destination)parts.push(t.meta.destination);
+  if(t.meta&&t.meta.startDate){
+    parts.push(mmdd(t.meta.startDate)+(t.meta.endDate?'~'+mmdd(t.meta.endDate):''));
+  }
+  return parts.length?title+'('+parts.join(', ')+')':title;
+}
 function buildTripBar(host){
   host.innerHTML='';
   var bar=el('div','tripbar');
   var nameEl=el('div','tripbar-name');
-  nameEl.innerHTML=ICON_PLANE+'<span>'+(D.meta.title||'제목 없는 여행')+'</span>';
+  nameEl.innerHTML=ICON_PLANE+'<span>'+tripDisplayName(D)+'</span>';
   bar.appendChild(nameEl);
   bar.appendChild(el('div','tripbar-chev','여행 변경 ▾'));
   bar.onclick=openTripSwitcher;
@@ -971,11 +983,17 @@ function openTripSwitcher(){
   AllData.tripOrder.forEach(function(tid){
     var t=AllData.trips[tid];if(!t)return;
     var row=el('div','trip-row'+(tid===activeTripId?' active':''));
+    var nameWrap=el('div','trip-row-namewrap');
     var nameInp=el('input','trip-row-name');nameInp.type='text';
     nameInp.value=t.meta.title||'';nameInp.placeholder='제목 없는 여행';
     nameInp.addEventListener('click',function(e){e.stopPropagation();});
     nameInp.addEventListener('change',function(){renameTrip(tid,nameInp.value||'제목 없는 여행');});
-    row.appendChild(nameInp);
+    nameWrap.appendChild(nameInp);
+    var capParts=[];
+    if(t.meta.destination)capParts.push(t.meta.destination);
+    if(t.meta.startDate)capParts.push(mmdd(t.meta.startDate)+(t.meta.endDate?'~'+mmdd(t.meta.endDate):''));
+    if(capParts.length)nameWrap.appendChild(el('div','trip-row-cap',capParts.join(', ')));
+    row.appendChild(nameWrap);
     var selBtn=el('button','trip-row-select',tid===activeTripId?'보는 중':'선택');
     if(tid===activeTripId)selBtn.disabled=true;
     selBtn.onclick=function(e){
@@ -1508,7 +1526,7 @@ function openTimeEditor(D,item,re){
 }
 
 /* ===== 2. 항공 ===== */
-function blankSeg(){return{id:uid(),date:'',time:'',arriveTime:'',airline:'',flightNo:'',from:'',to:''};}
+function blankSeg(D){return{id:uid(),date:(D&&D.meta&&D.meta.startDate)||'',time:'',arriveTime:'',airline:'',flightNo:'',from:'',to:''};}
 /* 항공 탭·항공 비교표에 이미 입력된 출발지/도착지를 모아 datalist로 제공 (새로 타이핑 안 해도 골라 쓸 수 있게) */
 function airportOptions(D){
   var set={};
@@ -1540,7 +1558,7 @@ function tabFlights(root,D){
     {t:'예약처',w:66},{t:'금액',w:120},{t:'결제',w:58},{t:'비고',w:186},{t:'',w:32}]);
 
   journeys.forEach(function(j){
-    j.segs=(j.segs&&j.segs.length)?j.segs:[blankSeg()];
+    j.segs=(j.segs&&j.segs.length)?j.segs:[blankSeg(D)];
     var span=j.segs.length;
     j.segs.forEach(function(s,si){
       var tr=el('tr');
@@ -1554,7 +1572,7 @@ function tabFlights(root,D){
       tt.addEventListener('change',function(){
         j.tripType=tt.value;
         if(j.tripType==='왕복'){
-          while(j.segs.length<2)j.segs.push(blankSeg());
+          while(j.segs.length<2)j.segs.push(blankSeg(D));
         }else if(j.tripType==='편도'&&j.segs.length>1){
           if(confirm('편도로 바꾸면 두 번째 구간부터는 삭제됩니다. 계속할까요?')){
             j.segs=[j.segs[0]];
@@ -1608,7 +1626,7 @@ function tabFlights(root,D){
     var addTd=el('td');addTd.colSpan=13;
     var addBtn=el('button',null,'+ 이 여정에 구간 추가 (경유·귀국편 등)');
     addBtn.style.cssText='width:100%;padding:7px;font-size:11.5px;color:var(--navy);';
-    addBtn.onclick=function(){j.segs.push(blankSeg());saveData(D);re();};
+    addBtn.onclick=function(){j.segs.push(blankSeg(D));saveData(D);re();};
     addTd.appendChild(addBtn);addTr.appendChild(addTd);
     T.tbody.appendChild(addTr);
   });
@@ -1618,7 +1636,7 @@ function tabFlights(root,D){
 
   var add=el('button','btn-add','+ 항공 여정 추가');
   add.onclick=function(){
-    D.flights.push({id:uid(),tripType:'왕복',agency:'',price:'',priceCur:localCur(D),payment:'카드',memo:'',segs:[blankSeg(),blankSeg()]});
+    D.flights.push({id:uid(),tripType:'왕복',agency:'',price:'',priceCur:localCur(D),payment:'카드',memo:'',segs:[blankSeg(D),blankSeg(D)]});
     saveData(D);re();
   };
   root.appendChild(add);
@@ -1767,7 +1785,7 @@ function tabTours(root,D){
 
   var add=el('button','btn-add','+ 투어 추가');
   add.onclick=function(){
-    D.tours.push({id:uid(),date:'',region:'',tourName:'',program:'',agency:'',
+    D.tours.push({id:uid(),date:D.meta.startDate||'',region:'',tourName:'',program:'',agency:'',
       price:'',priceCur:localCur(D),payment:'카드',memo:''});
     saveData(D);re();
   };
@@ -1943,7 +1961,7 @@ function tabRental(root,D){
 
   var add=el('button','btn-add','+ 렌트카 추가');
   add.onclick=function(){
-    D.rentalcar.push({id:uid(),date:'',time:'',company:'',carType:'',price:'',
+    D.rentalcar.push({id:uid(),date:D.meta.startDate||'',time:'',company:'',carType:'',price:'',
       priceCur:localCur(D),insurance:'',payment:'카드',memo:''});
     saveData(D);re();
   };

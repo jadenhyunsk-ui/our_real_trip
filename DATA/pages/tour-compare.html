@@ -593,7 +593,7 @@ function renderCompareTable(root,D,arrayKey,starLabels,L){
   var re=function(){renderCompareTable(root,D,arrayKey,starLabels,L);};
   function blank(){
     var st={};starLabels.forEach(function(item){st[item[1]]=0;});
-    return{id:uid(),selected:false,name:L.newName,agency:'',badge:'',date:'',duration:'',points:'',
+    return{id:uid(),selected:false,name:L.newName,agency:'',badge:'',date:(D.meta&&D.meta.startDate)||'',duration:'',points:'',
       rating:'',ratingCount:'',reviewQuote:'',pros:'',cons:'',diveNote:'',
       diveStars:st,price:'',priceCur:localCur(D)};
   }

@@ -555,7 +555,7 @@ function buildAppBar(host){
 }
 
 /* ===== 항공 비교표 (항공 탭과 동일한 표 형식) ===== */
-function blankSeg(){return{id:uid(),date:'',time:'',arriveTime:'',airline:'',flightNo:'',from:'',to:''};}
+function blankSeg(D){return{id:uid(),date:(D&&D.meta&&D.meta.startDate)||'',time:'',arriveTime:'',airline:'',flightNo:'',from:'',to:''};}
 /* 항공 탭·항공 비교표에 이미 입력된 출발지/도착지를 모아 datalist로 제공 (새로 타이핑 안 해도 골라 쓸 수 있게) */
 function airportOptions(D){
   var set={};
@@ -570,7 +570,7 @@ function buildAirportDatalist(D,id){
 }
 function blankFlightCompare(){
   return{id:uid(),label:'',selected:false,tripType:'왕복',agency:'',price:'',priceCur:localCur(D),
-    payment:'카드',pros:'',cons:'',memo:'',segs:[blankSeg(),blankSeg()]};
+    payment:'카드',pros:'',cons:'',memo:'',segs:[blankSeg(D),blankSeg(D)]};
 }
 function importFromFlights(D){
   var existing={};
@@ -612,7 +612,7 @@ function renderFlightCompareTable(root,D){
       {t:'예약처',w:90},{t:'금액',w:120},{t:'결제',w:58},{t:'장점',w:140},{t:'단점',w:140},{t:'비고',w:150},{t:'',w:32}]);
 
     D.flightCompare.forEach(function(j){
-      j.segs=(j.segs&&j.segs.length)?j.segs:[blankSeg()];
+      j.segs=(j.segs&&j.segs.length)?j.segs:[blankSeg(D)];
       var span=j.segs.length;
       j.segs.forEach(function(s,si){
         var tr=el('tr');
@@ -633,7 +633,7 @@ function renderFlightCompareTable(root,D){
           if((j.tripType||'왕복')===o)op.selected=true;tt.appendChild(op);});
         tt.addEventListener('change',function(){
           j.tripType=tt.value;
-          if(j.tripType==='왕복'){while(j.segs.length<2)j.segs.push(blankSeg());}
+          if(j.tripType==='왕복'){while(j.segs.length<2)j.segs.push(blankSeg(D));}
           else if(j.tripType==='편도'&&j.segs.length>1){
             if(confirm('편도로 바꾸면 두 번째 구간부터는 삭제됩니다. 계속할까요?')){j.segs=[j.segs[0]];}
             else{j.tripType='왕복';tt.value='왕복';}
@@ -684,7 +684,7 @@ function renderFlightCompareTable(root,D){
       var addTr=el('tr','segbtn-row');
       var addTd=el('td');addTd.colSpan=17;
       var addBtn=el('button',null,'+ 이 후보에 구간 추가 (경유·귀국편 등)');
-      addBtn.onclick=function(){j.segs.push(blankSeg());saveData(D);re();};
+      addBtn.onclick=function(){j.segs.push(blankSeg(D));saveData(D);re();};
       addTd.appendChild(addBtn);addTr.appendChild(addTd);
       T.tbody.appendChild(addTr);
     });
@@ -703,7 +703,7 @@ function renderFlightCompareTable(root,D){
     var chosen=D.flightCompare.filter(function(c){return c.selected;});
     if(!chosen.length){alert('반영할 항목에 체크(선정)해주세요.');return;}
     chosen.forEach(function(c){
-      var segs=(c.segs&&c.segs.length?c.segs:[blankSeg()]).map(function(s){
+      var segs=(c.segs&&c.segs.length?c.segs:[blankSeg(D)]).map(function(s){
         return{id:uid(),date:s.date||'',time:s.time||'',arriveTime:s.arriveTime||'',
           airline:s.airline||'',flightNo:s.flightNo||'',from:s.from||'',to:s.to||''};
       });

@@ -550,7 +550,7 @@ function buildAppBar(host){
 
 /* ===== 호텔 비교표 (호텔 탭과 동일한 표 형식) ===== */
 function blankHotelCompare(){
-  return{id:uid(),selected:false,name:'',place:'',agency:'',checkIn:'',checkOut:'',
+  return{id:uid(),selected:false,name:'',place:'',agency:'',checkIn:(D.meta&&D.meta.startDate)||'',checkOut:'',
     price:'',priceCur:localCur(D),payment:'카드',pros:'',cons:'',memo:''};
 }
 /* 날짜별 D.hotels를 같은 호텔 내용끼리 연속 구간으로 묶어 체크인~체크아웃 후보로 변환 */
