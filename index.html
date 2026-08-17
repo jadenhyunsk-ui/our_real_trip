@@ -144,6 +144,11 @@ table.grid td input,table.grid td select,table.grid td textarea{
 }
 table.grid td textarea{resize:vertical;min-height:34px;line-height:1.4;overflow:hidden;}
 table.grid td input:focus,table.grid td select:focus,table.grid td textarea:focus{background:#FFF6E9;}
+td.ov-cell{position:relative;}
+td.ov-cell .ov-input{color:transparent;position:relative;z-index:1;background:transparent;}
+td.ov-cell .ov-input:focus{color:transparent;}
+td.ov-cell .ov-label{position:absolute;left:7px;top:50%;transform:translateY(-50%);pointer-events:none;
+  font-size:13px;color:var(--ink);white-space:nowrap;z-index:0;}
 table.grid td.num input{text-align:right;font-family:var(--mono);color:var(--amber);font-weight:700;}
 table.grid td.ctr{text-align:center;}
 table.grid td.rowhead{
@@ -186,6 +191,7 @@ tr.subtotal td.num{text-align:right;font-family:var(--mono);color:var(--coral);}
 .wk-sat{color:var(--sat-blue);}
 .wk-sun{color:var(--red);}
 .daypill.active .wk-sat,.daypill.active .wk-sun{color:#fff;}
+.itin-sel-date{font-size:13px;font-weight:700;color:var(--navy);margin:2px 0 9px;}
 
 /* ===== 타임라인 (일정) ===== */
 .tl-undated{background:var(--card);border:1px solid var(--line);border-radius:9px;padding:9px 10px;margin-bottom:11px;}
@@ -841,6 +847,28 @@ function cellInput(td,obj,key,type,ph,onDone){
   i.addEventListener('change',function(){obj[key]=i.value;if(onDone)onDone(true);});
   td.appendChild(i);return i;
 }
+/* 날짜 입력칸: 네이티브 달력은 그대로 쓰되, 화면에 보이는 글자는 연도 없는 MM/DD로 표시 */
+function cellDate(td,obj,key,onDone){
+  td.classList.add('ov-cell');
+  var i=el('input');i.type='date';i.className='ov-input';i.value=obj[key]||'';
+  var lbl=el('span','ov-label');
+  function upd(){lbl.textContent=obj[key]?mmdd(obj[key]):'';}
+  upd();
+  i.addEventListener('input',function(){obj[key]=i.value;upd();if(onDone)onDone(false);});
+  i.addEventListener('change',function(){obj[key]=i.value;upd();if(onDone)onDone(true);});
+  td.appendChild(i);td.appendChild(lbl);return i;
+}
+/* 시간 입력칸: 네이티브 값은 항상 24시간제(HH:MM)이므로 그 값을 그대로 표시만 하면 됨 */
+function cellTime(td,obj,key,onDone){
+  td.classList.add('ov-cell');
+  var i=el('input');i.type='time';i.className='ov-input';i.value=obj[key]||'';
+  var lbl=el('span','ov-label');
+  function upd(){lbl.textContent=obj[key]||'';}
+  upd();
+  i.addEventListener('input',function(){obj[key]=i.value;upd();if(onDone)onDone(false);});
+  i.addEventListener('change',function(){obj[key]=i.value;upd();if(onDone)onDone(true);});
+  td.appendChild(i);td.appendChild(lbl);return i;
+}
 function cellSelect(td,obj,key,opts,onDone){
   var s=el('select');
   opts.forEach(function(o){var n=el('option',null,o);n.value=o;
@@ -1324,6 +1352,11 @@ function tabItinerary(root,D){
   });
   root.appendChild(pills);
 
+  var selWk=wk(selDate);
+  var selLabel=el('div','itin-sel-date');
+  selLabel.innerHTML='<span class="'+wkClass(selWk)+'">'+mmdd(selDate)+' ('+selWk+')</span>';
+  root.appendChild(selLabel);
+
   var items=D.itinerary.filter(function(x){return x.date===selDate;});
 
   var undated=items.filter(function(x){return timeToMin(x.time)==null;});
@@ -1599,9 +1632,9 @@ function tabFlights(root,D){
         if(full&&si===0&&j.tripType==='왕복'&&j.segs[1]&&!j.segs[1].from)j.segs[1].from=s.to;
         sv(full);
       };
-      cellInput(td(),s,'date','date',null,sv);
-      cellInput(td(),s,'time','time',null,sv);
-      cellInput(td(),s,'arriveTime','time',null,sv);
+      cellDate(td(),s,'date',sv);
+      cellTime(td(),s,'time',sv);
+      cellTime(td(),s,'arriveTime',sv);
       cellInput(td(),s,'airline','text','항공사',si===0?svAirline:sv);
       cellInput(td(),s,'flightNo','text','KE407',sv);
       cellInput(td(),s,'from','text','출발지',si===0?svFrom:sv).setAttribute('list','airport-dl');
@@ -1717,20 +1750,24 @@ function tabHotels(root,D){
     };
     function td(cls){var c=el('td',cls);tr.appendChild(c);return c;}
 
-    var ci=el('input');ci.type='date';ci.value=g.first;
+    var tdCi=el('td','ov-cell');
+    var ci=el('input');ci.type='date';ci.className='ov-input';ci.value=g.first;
+    var ciLbl=el('span','ov-label',mmdd(g.first));
     ci.addEventListener('change',function(){
-      if(!ci.value||!applyRange(g,ci.value,g.last)){alert('여행 기간과 겹치는 날짜를 입력해주세요.');ci.value=g.first;return;}
+      if(!ci.value||!applyRange(g,ci.value,g.last)){alert('여행 기간과 겹치는 날짜를 입력해주세요.');ci.value=g.first;ciLbl.textContent=mmdd(g.first);return;}
       saveData(D);re();
     });
-    var tdCi=el('td');tdCi.appendChild(ci);tr.appendChild(tdCi);
+    tdCi.appendChild(ci);tdCi.appendChild(ciLbl);tr.appendChild(tdCi);
 
-    var co=el('input');co.type='date';co.value=nextDay(g.last);
+    var tdCo=el('td','ov-cell');
+    var co=el('input');co.type='date';co.className='ov-input';co.value=nextDay(g.last);
+    var coLbl=el('span','ov-label',mmdd(nextDay(g.last)));
     co.addEventListener('change',function(){
       var newLast=co.value?dayBefore(co.value):g.last;
-      if(!applyRange(g,g.first,newLast)){alert('여행 기간과 겹치는 날짜를 입력해주세요.');co.value=nextDay(g.last);return;}
+      if(!applyRange(g,g.first,newLast)){alert('여행 기간과 겹치는 날짜를 입력해주세요.');co.value=nextDay(g.last);coLbl.textContent=mmdd(nextDay(g.last));return;}
       saveData(D);re();
     });
-    var tdCo=el('td');tdCo.appendChild(co);tr.appendChild(tdCo);
+    tdCo.appendChild(co);tdCo.appendChild(coLbl);tr.appendChild(tdCo);
 
     cellInput(td(),h,'name','text','호텔명',s);
     cellInput(td(),h,'place','text','장소',s);
@@ -1771,7 +1808,7 @@ function tabTours(root,D){
     var tr=el('tr');
     var s=function(full){saveData(D);if(full)re();};
     function td(cls){var c=el('td',cls);tr.appendChild(c);return c;}
-    cellInput(td(),t,'date','date',null,s);
+    cellDate(td(),t,'date',s);
     cellInput(td(),t,'region','text','케언즈',s);
     cellInput(td(),t,'tourName','text','Silverswift',function(full){saveData(D);if(full)re();});
     cellInput(td(),t,'program','text','프로그램명',s);
@@ -1949,8 +1986,8 @@ function tabRental(root,D){
     var tr=el('tr');
     var s=function(full){saveData(D);if(full)re();};
     function td(cls){var c=el('td',cls);tr.appendChild(c);return c;}
-    cellInput(td(),r,'date','date',null,s);
-    cellInput(td(),r,'time','time',null,s);
+    cellDate(td(),r,'date',s);
+    cellTime(td(),r,'time',s);
     cellInput(td(),r,'company','text','Hertz',s);
     cellInput(td(),r,'carType','text','Corolla 동급',s);
     cellMoney(td(),r,D,s);

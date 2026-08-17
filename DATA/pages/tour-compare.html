@@ -75,6 +75,11 @@ table.grid td input,table.grid td select,table.grid td textarea{
 }
 table.grid td textarea{resize:vertical;min-height:34px;line-height:1.4;}
 table.grid td input:focus,table.grid td select:focus,table.grid td textarea:focus{background:#FFF6E9;}
+td.ov-cell{position:relative;}
+td.ov-cell .ov-input{color:transparent;position:relative;z-index:1;background:transparent;}
+td.ov-cell .ov-input:focus{color:transparent;}
+td.ov-cell .ov-label{position:absolute;left:7px;top:50%;transform:translateY(-50%);pointer-events:none;
+  font-size:13px;color:var(--ink);white-space:nowrap;z-index:0;}
 table.grid td.num input{text-align:right;font-family:var(--mono);color:var(--amber);font-weight:700;}
 .money-cell{display:flex;align-items:center;}
 .money-cell input{flex:1;min-width:0;text-align:right;font-family:var(--mono);}
@@ -173,6 +178,7 @@ function dateRange(s,e){var out=[];if(!s||!e)return out;
   var d=new Date(s+'T00:00:00'),en=new Date(e+'T00:00:00');
   if(isNaN(d)||isNaN(en)||d>en)return out;
   while(d<=en){out.push(fmtLocalDate(d));d.setDate(d.getDate()+1);}return out;}
+function mmdd(s){return s?s.slice(5,7)+'/'+s.slice(8,10):'';}
 
 function defaultTripData(){return{
   meta:{title:'첫 여행',destination:'호주 케언즈',currency:'AUD',rate:920,
@@ -469,6 +475,16 @@ function updateSyncPill(){
 function el(tag,cls,txt){var e=document.createElement(tag);if(cls)e.className=cls;
   if(txt!==undefined)e.textContent=txt;return e;}
 function stars(n){var s='';n=Number(n)||0;for(var i=1;i<=5;i++)s+=(i<=n?'★':'☆');return s;}
+function cellDate(td,obj,key,onDone){
+  td.classList.add('ov-cell');
+  var i=el('input');i.type='date';i.className='ov-input';i.value=obj[key]||'';
+  var lbl=el('span','ov-label');
+  function upd(){lbl.textContent=obj[key]?mmdd(obj[key]):'';}
+  upd();
+  i.addEventListener('input',function(){obj[key]=i.value;upd();if(onDone)onDone(false);});
+  i.addEventListener('change',function(){obj[key]=i.value;upd();if(onDone)onDone(true);});
+  td.appendChild(i);td.appendChild(lbl);return i;
+}
 function cellInput(td,obj,key,type,ph,onDone){
   var i=el('input');i.type=type||'text';i.value=obj[key]==null?'':obj[key];
   if(ph)i.placeholder=ph;
@@ -667,7 +683,7 @@ function renderCompareTable(root,D,arrayKey,starLabels,L){
       cs.appendChild(chk);tr.appendChild(cs);
 
       cellInput(td(),t,'badge','text',L.badgePh||'뱃지',sv);
-      cellInput(td(),t,'date','date',null,sv);
+      cellDate(td(),t,'date',sv);
       cellInput(td(),t,'name','text',L.newName,sv);
       cellInput(td(),t,'agency','text',L.agencyPh,sv);
       cellMoney(td(),t,D,sv);
