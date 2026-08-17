@@ -1954,7 +1954,7 @@ function tabExpenses(root,D){
   add.onclick=function(){
     var maxNo=0;
     items.forEach(function(item){var n=Number(item.no);if(!isNaN(n)&&n>maxNo)maxNo=n;});
-    D.expenses.push({id:uid(),date:selDate,no:maxNo+1,cat:EXP_CATS[0],item:'',price:'',priceCur:localCur(D),payment:'카드',memo:''});
+    D.expenses.push({id:uid(),date:selDate,no:maxNo+1,cat:'식비',item:'',price:'',priceCur:localCur(D),payment:'카드',memo:''});
     saveData(D);re();
   };
   root.appendChild(add);
