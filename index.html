@@ -652,6 +652,7 @@ function dateRange(s,e){var out=[];if(!s||!e)return out;
   while(d<=en){out.push(fmtLocalDate(d));d.setDate(d.getDate()+1);}return out;}
 function wk(s){return ['일','월','화','수','목','금','토'][new Date(s+'T00:00:00').getDay()];}
 function wkClass(w){return w==='토'?'wk-sat':(w==='일'?'wk-sun':'');}
+function mmddColored(s){return s?('<span class="'+wkClass(wk(s))+'">'+mmdd(s)+'</span>'):'';}
 function mmdd(s){return s?s.slice(5,7)+'/'+s.slice(8,10):'';}
 /* 여행 설정 요약·여행 이름에서만 쓰는, 연도를 포함한 날짜 표기 */
 function mmddFull(s){return s?s.slice(0,4)+'.'+s.slice(5,7)+'.'+s.slice(8,10):'';}
@@ -852,7 +853,7 @@ function cellDate(td,obj,key,onDone){
   td.classList.add('ov-cell');
   var i=el('input');i.type='date';i.className='ov-input';i.value=obj[key]||'';
   var lbl=el('span','ov-label');
-  function upd(){lbl.textContent=obj[key]?mmdd(obj[key]):'';}
+  function upd(){lbl.innerHTML=mmddColored(obj[key]);}
   upd();
   i.addEventListener('input',function(){obj[key]=i.value;upd();if(onDone)onDone(false);});
   i.addEventListener('change',function(){obj[key]=i.value;upd();if(onDone)onDone(true);});
@@ -1588,7 +1589,7 @@ function tabFlights(root,D){
   });
 
   var T=mkTable([
-    {t:'여정',w:55},{t:'날짜',w:112},{t:'출발',w:74},{t:'도착',w:74},
+    {t:'여정',w:55},{t:'날짜',w:76},{t:'출발',w:60},{t:'도착',w:60},
     {t:'항공사',w:66},{t:'편명',w:56},{t:'출발지',w:90},{t:'도착지',w:90},
     {t:'예약처',w:66},{t:'금액',w:120},{t:'결제',w:58},{t:'비고',w:186},{t:'',w:32}]);
 
@@ -1737,7 +1738,7 @@ function tabHotels(root,D){
     return true;
   }
 
-  var T=mkTable([{t:'체크인',w:112},{t:'체크아웃',w:112},{t:'호텔명',w:168},{t:'장소',w:88},{t:'예약처',w:90},
+  var T=mkTable([{t:'체크인',w:76},{t:'체크아웃',w:76},{t:'호텔명',w:168},{t:'장소',w:88},{t:'예약처',w:90},
                  {t:'금액',w:120},{t:'결제',w:58},{t:'비고',w:150},{t:'',w:32}]);
   var list=[];
   groups.forEach(function(g){
@@ -1752,19 +1753,19 @@ function tabHotels(root,D){
 
     var tdCi=el('td','ov-cell');
     var ci=el('input');ci.type='date';ci.className='ov-input';ci.value=g.first;
-    var ciLbl=el('span','ov-label',mmdd(g.first));
+    var ciLbl=el('span','ov-label');ciLbl.innerHTML=mmddColored(g.first);
     ci.addEventListener('change',function(){
-      if(!ci.value||!applyRange(g,ci.value,g.last)){alert('여행 기간과 겹치는 날짜를 입력해주세요.');ci.value=g.first;ciLbl.textContent=mmdd(g.first);return;}
+      if(!ci.value||!applyRange(g,ci.value,g.last)){alert('여행 기간과 겹치는 날짜를 입력해주세요.');ci.value=g.first;ciLbl.innerHTML=mmddColored(g.first);return;}
       saveData(D);re();
     });
     tdCi.appendChild(ci);tdCi.appendChild(ciLbl);tr.appendChild(tdCi);
 
     var tdCo=el('td','ov-cell');
     var co=el('input');co.type='date';co.className='ov-input';co.value=nextDay(g.last);
-    var coLbl=el('span','ov-label',mmdd(nextDay(g.last)));
+    var coLbl=el('span','ov-label');coLbl.innerHTML=mmddColored(nextDay(g.last));
     co.addEventListener('change',function(){
       var newLast=co.value?dayBefore(co.value):g.last;
-      if(!applyRange(g,g.first,newLast)){alert('여행 기간과 겹치는 날짜를 입력해주세요.');co.value=nextDay(g.last);coLbl.textContent=mmdd(nextDay(g.last));return;}
+      if(!applyRange(g,g.first,newLast)){alert('여행 기간과 겹치는 날짜를 입력해주세요.');co.value=nextDay(g.last);coLbl.innerHTML=mmddColored(nextDay(g.last));return;}
       saveData(D);re();
     });
     tdCo.appendChild(co);tdCo.appendChild(coLbl);tr.appendChild(tdCo);
@@ -1801,7 +1802,7 @@ function tabTours(root,D){
   root.appendChild(setupBar(root,D,re));
   root.appendChild(secHead('투어',D.tours.length+'건'));
 
-  var T=mkTable([{t:'날짜',w:112},{t:'지역',w:88},{t:'투어명',w:170},
+  var T=mkTable([{t:'날짜',w:76},{t:'지역',w:88},{t:'투어명',w:170},
                  {t:'프로그램',w:48},{t:'예약처',w:52},{t:'금액',w:120},{t:'결제',w:58},{t:'비고',w:191},{t:'',w:32}]);
   var sortedTours=D.tours.slice().sort(function(a,b){return (a.date||'').localeCompare(b.date||'');});
   sortedTours.forEach(function(t){
@@ -1980,7 +1981,7 @@ function tabRental(root,D){
   root.appendChild(setupBar(root,D,re));
   root.appendChild(secHead('렌트카',D.rentalcar.length+'건'));
 
-  var T=mkTable([{t:'날짜',w:112},{t:'시간',w:74},{t:'업체',w:95},{t:'차종',w:100},
+  var T=mkTable([{t:'날짜',w:76},{t:'시간',w:60},{t:'업체',w:95},{t:'차종',w:100},
                  {t:'가격',w:120},{t:'보험',w:80},{t:'결제',w:58},{t:'비고',w:179},{t:'',w:32}]);
   D.rentalcar.forEach(function(r,idx){
     var tr=el('tr');

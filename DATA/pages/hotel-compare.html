@@ -21,6 +21,7 @@
   --amber:#B8791F;
   --gold:#FFC978;
   --red:#C1543A;
+  --sat-blue:#2563EB;
   --font:-apple-system,BlinkMacSystemFont,'Apple SD Gothic Neo','Malgun Gothic','Noto Sans KR',sans-serif;
   --mono:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;
 }
@@ -80,6 +81,8 @@ td.ov-cell .ov-input{color:transparent;position:relative;z-index:1;background:tr
 td.ov-cell .ov-input:focus{color:transparent;}
 td.ov-cell .ov-label{position:absolute;left:7px;top:50%;transform:translateY(-50%);pointer-events:none;
   font-size:13px;color:var(--ink);white-space:nowrap;z-index:0;}
+.wk-sat{color:var(--sat-blue);}
+.wk-sun{color:var(--red);}
 table.grid td.num input{text-align:right;font-family:var(--mono);color:var(--amber);font-weight:700;}
 table.grid td.ctr{text-align:center;}
 table.grid td.sel{width:44px;text-align:center;background:#FAF7F1!important;}
@@ -185,6 +188,9 @@ function dateRange(s,e){var out=[];if(!s||!e)return out;
 function dayBefore(s){if(!s)return '';var d=new Date(s+'T00:00:00');if(isNaN(d))return '';
   d.setDate(d.getDate()-1);return fmtLocalDate(d);}
 function mmdd(s){return s?s.slice(5,7)+'/'+s.slice(8,10):'';}
+function wk(s){return ['일','월','화','수','목','금','토'][new Date(s+'T00:00:00').getDay()];}
+function wkClass(w){return w==='토'?'wk-sat':(w==='일'?'wk-sun':'');}
+function mmddColored(s){return s?('<span class="'+wkClass(wk(s))+'">'+mmdd(s)+'</span>'):'';}
 
 function defaultTripData(){return{
   meta:{title:'첫 여행',destination:'호주 케언즈',currency:'AUD',rate:920,
@@ -445,7 +451,7 @@ function cellDate(td,obj,key,onDone){
   td.classList.add('ov-cell');
   var i=el('input');i.type='date';i.className='ov-input';i.value=obj[key]||'';
   var lbl=el('span','ov-label');
-  function upd(){lbl.textContent=obj[key]?mmdd(obj[key]):'';}
+  function upd(){lbl.innerHTML=mmddColored(obj[key]);}
   upd();
   i.addEventListener('input',function(){obj[key]=i.value;upd();if(onDone)onDone(false);});
   i.addEventListener('change',function(){obj[key]=i.value;upd();if(onDone)onDone(true);});
@@ -624,7 +630,7 @@ function renderHotelCompareTable(root,D){
   else{
     var T=mkTable([
       {t:'선정',w:44},{t:'호텔명',w:130},{t:'장소',w:100},{t:'예약처',w:96},
-      {t:'체크인',w:112},{t:'체크아웃',w:112},{t:'금액',w:120},{t:'결제',w:58},
+      {t:'체크인',w:76},{t:'체크아웃',w:76},{t:'금액',w:120},{t:'결제',w:58},
       {t:'장점',w:140},{t:'단점',w:140},{t:'비고',w:150},{t:'',w:32}]);
 
     D.hotelCompare.forEach(function(h,idx){
