@@ -556,6 +556,18 @@ function buildAppBar(host){
 
 /* ===== 항공 비교표 (항공 탭과 동일한 표 형식) ===== */
 function blankSeg(){return{id:uid(),date:'',time:'',arriveTime:'',airline:'',flightNo:'',from:'',to:''};}
+/* 항공 탭·항공 비교표에 이미 입력된 출발지/도착지를 모아 datalist로 제공 (새로 타이핑 안 해도 골라 쓸 수 있게) */
+function airportOptions(D){
+  var set={};
+  (D.flights||[]).forEach(function(j){(j.segs||[]).forEach(function(s){if(s.from)set[s.from]=true;if(s.to)set[s.to]=true;});});
+  (D.flightCompare||[]).forEach(function(j){(j.segs||[]).forEach(function(s){if(s.from)set[s.from]=true;if(s.to)set[s.to]=true;});});
+  return Object.keys(set).sort();
+}
+function buildAirportDatalist(D,id){
+  var dl=el('datalist');dl.id=id;
+  airportOptions(D).forEach(function(v){var o=el('option');o.value=v;dl.appendChild(o);});
+  return dl;
+}
 function blankFlightCompare(){
   return{id:uid(),label:'',selected:false,tripType:'왕복',agency:'',price:'',priceCur:localCur(D),
     payment:'카드',pros:'',cons:'',memo:'',segs:[blankSeg(),blankSeg()]};
@@ -581,6 +593,7 @@ function renderFlightCompareTable(root,D){
   var re=function(){renderFlightCompareTable(root,D);};
   root.innerHTML='';
   document.getElementById('cnt').textContent=D.flightCompare.length+'건';
+  root.appendChild(buildAirportDatalist(D,'airport-dl'));
 
   var imp=el('button','btn-add','📥 현재 항공 탭 값 불러오기');
   imp.onclick=function(){
@@ -647,8 +660,8 @@ function renderFlightCompareTable(root,D){
         cellInput(td(),s,'arriveTime','time',null,sv);
         cellInput(td(),s,'airline','text','항공사',si===0?svAirline:sv);
         cellInput(td(),s,'flightNo','text','KE407',sv);
-        cellInput(td(),s,'from','text','출발지',si===0?svFrom:sv);
-        cellInput(td(),s,'to','text','도착지',si===0?svTo:sv);
+        cellInput(td(),s,'from','text','출발지',si===0?svFrom:sv).setAttribute('list','airport-dl');
+        cellInput(td(),s,'to','text','도착지',si===0?svTo:sv).setAttribute('list','airport-dl');
 
         if(si===0){
           var ca=el('td');ca.rowSpan=span;cellInput(ca,j,'agency','text','예약처',sv);tr.appendChild(ca);

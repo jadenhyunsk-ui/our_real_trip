@@ -1509,11 +1509,24 @@ function openTimeEditor(D,item,re){
 
 /* ===== 2. 항공 ===== */
 function blankSeg(){return{id:uid(),date:'',time:'',arriveTime:'',airline:'',flightNo:'',from:'',to:''};}
+/* 항공 탭·항공 비교표에 이미 입력된 출발지/도착지를 모아 datalist로 제공 (새로 타이핑 안 해도 골라 쓸 수 있게) */
+function airportOptions(D){
+  var set={};
+  (D.flights||[]).forEach(function(j){(j.segs||[]).forEach(function(s){if(s.from)set[s.from]=true;if(s.to)set[s.to]=true;});});
+  (D.flightCompare||[]).forEach(function(j){(j.segs||[]).forEach(function(s){if(s.from)set[s.from]=true;if(s.to)set[s.to]=true;});});
+  return Object.keys(set).sort();
+}
+function buildAirportDatalist(D,id){
+  var dl=el('datalist');dl.id=id;
+  airportOptions(D).forEach(function(v){var o=el('option');o.value=v;dl.appendChild(o);});
+  return dl;
+}
 function tabFlights(root,D){
   var re=function(){tabFlights(root,D);};
   root.innerHTML='';
   root.appendChild(setupBar(root,D,re));
   root.appendChild(secHead('항공',D.flights.length+'건'));
+  root.appendChild(buildAirportDatalist(D,'airport-dl'));
 
   var journeys=D.flights.slice().sort(function(a,b){
     var da=(a.segs&&a.segs[0]&&a.segs[0].date)||'';
@@ -1522,9 +1535,9 @@ function tabFlights(root,D){
   });
 
   var T=mkTable([
-    {t:'여정',w:66},{t:'날짜',w:112},{t:'출발',w:74},{t:'도착',w:74},
-    {t:'항공사',w:88},{t:'편명',w:70},{t:'출발지',w:96},{t:'도착지',w:96},
-    {t:'예약처',w:110},{t:'금액',w:138},{t:'결제',w:70},{t:'비고',w:170},{t:'',w:32}]);
+    {t:'여정',w:60},{t:'날짜',w:112},{t:'출발',w:74},{t:'도착',w:74},
+    {t:'항공사',w:80},{t:'편명',w:64},{t:'출발지',w:82},{t:'도착지',w:82},
+    {t:'예약처',w:90},{t:'금액',w:138},{t:'결제',w:64},{t:'비고',w:120},{t:'',w:32}]);
 
   journeys.forEach(function(j){
     j.segs=(j.segs&&j.segs.length)?j.segs:[blankSeg()];
@@ -1571,8 +1584,8 @@ function tabFlights(root,D){
       cellInput(td(),s,'arriveTime','time',null,sv);
       cellInput(td(),s,'airline','text','항공사',si===0?svAirline:sv);
       cellInput(td(),s,'flightNo','text','KE407',sv);
-      cellInput(td(),s,'from','text','출발지',si===0?svFrom:sv);
-      cellInput(td(),s,'to','text','도착지',si===0?svTo:sv);
+      cellInput(td(),s,'from','text','출발지',si===0?svFrom:sv).setAttribute('list','airport-dl');
+      cellInput(td(),s,'to','text','도착지',si===0?svTo:sv).setAttribute('list','airport-dl');
 
       /* 예약처·금액·결제·비고는 여정당 한 번만(rowspan) — 반복 입력으로 인한 중복 입력 방지 */
       if(si===0){
@@ -1671,8 +1684,8 @@ function tabHotels(root,D){
     return true;
   }
 
-  var T=mkTable([{t:'체크인',w:112},{t:'체크아웃',w:112},{t:'호텔명',w:130},{t:'장소',w:100},{t:'예약처',w:96},
-                 {t:'금액',w:138},{t:'결제',w:64},{t:'비고',w:170},{t:'',w:32}]);
+  var T=mkTable([{t:'체크인',w:112},{t:'체크아웃',w:112},{t:'호텔명',w:110},{t:'장소',w:85},{t:'예약처',w:85},
+                 {t:'금액',w:138},{t:'결제',w:64},{t:'비고',w:120},{t:'',w:32}]);
   var list=[];
   groups.forEach(function(g){
     var h=g.h;
@@ -1731,8 +1744,8 @@ function tabTours(root,D){
   root.appendChild(setupBar(root,D,re));
   root.appendChild(secHead('투어',D.tours.length+'건'));
 
-  var T=mkTable([{t:'날짜',w:112},{t:'지역',w:80},{t:'투어명',w:130},
-                 {t:'프로그램',w:130},{t:'예약처',w:96},{t:'금액',w:138},{t:'결제',w:64},{t:'비고',w:170},{t:'',w:32}]);
+  var T=mkTable([{t:'날짜',w:112},{t:'지역',w:70},{t:'투어명',w:110},
+                 {t:'프로그램',w:100},{t:'예약처',w:85},{t:'금액',w:138},{t:'결제',w:64},{t:'비고',w:120},{t:'',w:32}]);
   var sortedTours=D.tours.slice().sort(function(a,b){return (a.date||'').localeCompare(b.date||'');});
   sortedTours.forEach(function(t){
     var tr=el('tr');
@@ -1868,7 +1881,7 @@ function tabExpenses(root,D){
     if(cat&&!(cat in catColorMap)){catColorMap[cat]=RECORD_CAT_PALETTE[pi%RECORD_CAT_PALETTE.length];pi++;}
   });
   var prevCat;
-  var T=mkTable([{t:'No',w:34},{t:'카테고리',w:98},{t:'사용내역',w:150},{t:'금액',w:138},{t:'결제',w:64},{t:'비고',w:170},{t:'',w:32}]);
+  var T=mkTable([{t:'No',w:34},{t:'카테고리',w:85},{t:'사용내역',w:130},{t:'금액',w:138},{t:'결제',w:64},{t:'비고',w:130},{t:'',w:32}]);
   var dayK=0;
   displayItems.forEach(function(item,idx){
     dayK+=toKRW(item.price,item.priceCur,D);
@@ -1908,8 +1921,8 @@ function tabRental(root,D){
   root.appendChild(setupBar(root,D,re));
   root.appendChild(secHead('렌트카',D.rentalcar.length+'건'));
 
-  var T=mkTable([{t:'날짜',w:112},{t:'시간',w:74},{t:'업체',w:110},{t:'차종',w:120},
-                 {t:'가격',w:138},{t:'보험',w:110},{t:'결제',w:64},{t:'비고',w:170},{t:'',w:32}]);
+  var T=mkTable([{t:'날짜',w:112},{t:'시간',w:74},{t:'업체',w:95},{t:'차종',w:95},
+                 {t:'가격',w:138},{t:'보험',w:90},{t:'결제',w:64},{t:'비고',w:120},{t:'',w:32}]);
   D.rentalcar.forEach(function(r,idx){
     var tr=el('tr');
     var s=function(full){saveData(D);if(full)re();};
