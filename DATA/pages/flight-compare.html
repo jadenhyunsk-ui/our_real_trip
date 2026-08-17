@@ -629,13 +629,26 @@ function renderFlightCompareTable(root,D){
         });
         ct.appendChild(tt);
 
+        /* 왕복일 때 가는편(si===0)의 항공사/출발지/도착지를 입력하면 오는편(비어있는 칸만) 자동 채움 */
+        var svAirline=function(full){
+          if(full&&si===0&&j.tripType==='왕복'&&j.segs[1]&&!j.segs[1].airline)j.segs[1].airline=s.airline;
+          sv(full);
+        };
+        var svFrom=function(full){
+          if(full&&si===0&&j.tripType==='왕복'&&j.segs[1]&&!j.segs[1].to)j.segs[1].to=s.from;
+          sv(full);
+        };
+        var svTo=function(full){
+          if(full&&si===0&&j.tripType==='왕복'&&j.segs[1]&&!j.segs[1].from)j.segs[1].from=s.to;
+          sv(full);
+        };
         cellInput(td(),s,'date','date',null,sv);
         cellInput(td(),s,'time','time',null,sv);
         cellInput(td(),s,'arriveTime','time',null,sv);
-        cellInput(td(),s,'airline','text','항공사',sv);
+        cellInput(td(),s,'airline','text','항공사',si===0?svAirline:sv);
         cellInput(td(),s,'flightNo','text','KE407',sv);
-        cellInput(td(),s,'from','text','출발지',sv);
-        cellInput(td(),s,'to','text','도착지',sv);
+        cellInput(td(),s,'from','text','출발지',si===0?svFrom:sv);
+        cellInput(td(),s,'to','text','도착지',si===0?svTo:sv);
 
         if(si===0){
           var ca=el('td');ca.rowSpan=span;cellInput(ca,j,'agency','text','예약처',sv);tr.appendChild(ca);
