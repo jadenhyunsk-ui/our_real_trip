@@ -1209,9 +1209,16 @@ function tabSummary(root,D){
     d0.addEventListener('click',goItin);
     tr.appendChild(d0);
 
-    var c1=el('td');var c1a=cellArea(c1,N,'summary',itin.join(' / ')||'요약',function(){saveData(D);});
+    var itinText=itin.join('\n');
+    var c1=el('td');var c1a=cellArea(c1,N,'summary',itinText||'요약',function(){saveData(D);});
     c1a.title='더블탭하면 일정 탭의 이 날짜로 이동';
     c1a.addEventListener('dblclick',goItin);
+    if(!N.summary&&itin.length>1){
+      setTimeout(function(){
+        var savedVal=c1a.value;
+        c1a.value=itinText;autoGrow(c1a);c1a.value=savedVal;
+      },0);
+    }
     tr.appendChild(c1);
     var c2=el('td');c2.appendChild(el('div',null,''));
     c2.firstChild.style.padding='8px 7px';c2.firstChild.style.fontSize='12.5px';
