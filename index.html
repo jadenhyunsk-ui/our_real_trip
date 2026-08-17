@@ -644,7 +644,7 @@ function dateRange(s,e){var out=[];if(!s||!e)return out;
   while(d<=en){out.push(fmtLocalDate(d));d.setDate(d.getDate()+1);}return out;}
 function wk(s){return ['일','월','화','수','목','금','토'][new Date(s+'T00:00:00').getDay()];}
 function wkClass(w){return w==='토'?'wk-sat':(w==='일'?'wk-sun':'');}
-function mmdd(s){return s?s.slice(2,4)+'.'+s.slice(5,7)+'.'+s.slice(8,10):'';}
+function mmdd(s){return s?"'"+s.slice(2,4)+'.'+s.slice(5,7)+'.'+s.slice(8,10):'';}
 function nextDay(s){var d=new Date(s+'T00:00:00');d.setDate(d.getDate()+1);return fmtLocalDate(d);}
 function dayBefore(s){var d=new Date(s+'T00:00:00');d.setDate(d.getDate()-1);return fmtLocalDate(d);}
 
