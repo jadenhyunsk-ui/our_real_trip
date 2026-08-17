@@ -155,6 +155,7 @@ table.grid td.rowhead{
   background:var(--sand)!important;font-size:11px;font-weight:700;color:var(--navy);
   text-align:center;padding:6px 4px;white-space:nowrap;position:sticky;left:0;z-index:1;
 }
+table.grid td.rowhead input{text-align:center;font-size:11px;font-weight:700;color:var(--navy);padding:6px 2px;background:transparent;}
 table.grid td.del{width:32px;text-align:center;background:#FAF7F1!important;}
 table.grid td.del button{width:100%;padding:8px 0;color:var(--red);font-size:13px;}
 table.grid tbody tr.cat-tinted td{background:var(--cat-bg)!important;}
@@ -191,7 +192,6 @@ tr.subtotal td.num{text-align:right;font-family:var(--mono);color:var(--coral);}
 .wk-sat{color:var(--sat-blue);}
 .wk-sun{color:var(--red);}
 .daypill.active .wk-sat,.daypill.active .wk-sun{color:#fff;}
-.itin-sel-date{font-size:13px;font-weight:700;color:var(--navy);margin:2px 0 9px;}
 
 /* ===== 타임라인 (일정) ===== */
 .tl-undated{background:var(--card);border:1px solid var(--line);border-radius:9px;padding:9px 10px;margin-bottom:11px;}
@@ -1347,16 +1347,11 @@ function tabItinerary(root,D){
   dates.forEach(function(date,i){
     var b=el('button','daypill'+(date===selDate?' active':''));
     var bWk=wk(date);
-    b.innerHTML='<span class="'+wkClass(bWk)+'">'+mmdd(date)+'</span>';
+    b.innerHTML='<span class="'+wkClass(bWk)+'">'+mmdd(date)+' ('+bWk+')</span>';
     b.onclick=function(){setUiTab('itin',date);re();};
     pills.appendChild(b);
   });
   root.appendChild(pills);
-
-  var selWk=wk(selDate);
-  var selLabel=el('div','itin-sel-date');
-  selLabel.innerHTML='<span class="'+wkClass(selWk)+'">'+mmdd(selDate)+' ('+selWk+')</span>';
-  root.appendChild(selLabel);
 
   var items=D.itinerary.filter(function(x){return x.date===selDate;});
 
@@ -1930,29 +1925,20 @@ function tabExpenses(root,D){
   root.appendChild(pills);
 
   var items=D.expenses.filter(function(e){return e.date===selDate;});
-  var displayItems=items.slice().sort(function(a,b){
-    var ai=EXP_CATS.indexOf(a.cat);if(ai<0)ai=EXP_CATS.length;
-    var bi=EXP_CATS.indexOf(b.cat);if(bi<0)bi=EXP_CATS.length;
-    return ai-bi;
+  var needMigrate=false;
+  items.forEach(function(item,idx){
+    if(item.no===undefined||item.no===null||item.no===''){item.no=idx+1;needMigrate=true;}
   });
-  var catColorMap={};var pi=0;
-  displayItems.forEach(function(item){
-    var cat=(item.cat||'').trim();
-    if(cat&&!(cat in catColorMap)){catColorMap[cat]=RECORD_CAT_PALETTE[pi%RECORD_CAT_PALETTE.length];pi++;}
-  });
-  var prevCat;
+  if(needMigrate)saveData(D);
+
   var T=mkTable([{t:'No',w:34},{t:'카테고리',w:88},{t:'사용내역',w:165},{t:'금액',w:120},{t:'결제',w:58},{t:'비고',w:195},{t:'',w:32}]);
   var dayK=0;
-  displayItems.forEach(function(item,idx){
+  items.forEach(function(item){
     dayK+=toKRW(item.price,item.priceCur,D);
     var tr=el('tr');
-    var cat=(item.cat||'').trim();
-    if(idx>0&&cat!==prevCat)tr.classList.add('cat-boundary');
-    prevCat=cat;
-    if(cat&&catColorMap[cat]){tr.classList.add('cat-tinted');tr.style.setProperty('--cat-bg',catColorMap[cat]);}
-    var no=el('td','rowhead',String(idx+1));tr.appendChild(no);
     var s=function(full){saveData(D);if(full)re();};
     function td(cls){var c=el('td',cls);tr.appendChild(c);return c;}
+    cellInput(td('rowhead'),item,'no','number',null,s);
     cellSelect(td(),item,'cat',EXP_CATS,s);
     cellInput(td(),item,'item','text','사용내역',s);
     cellMoney(td(),item,D,s);
@@ -1966,7 +1952,9 @@ function tabExpenses(root,D){
 
   var add=el('button','btn-add','+ 지출 추가');
   add.onclick=function(){
-    D.expenses.push({id:uid(),date:selDate,cat:EXP_CATS[0],item:'',price:'',priceCur:localCur(D),payment:'카드',memo:''});
+    var maxNo=0;
+    items.forEach(function(item){var n=Number(item.no);if(!isNaN(n)&&n>maxNo)maxNo=n;});
+    D.expenses.push({id:uid(),date:selDate,no:maxNo+1,cat:EXP_CATS[0],item:'',price:'',priceCur:localCur(D),payment:'카드',memo:''});
     saveData(D);re();
   };
   root.appendChild(add);
