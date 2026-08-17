@@ -1926,17 +1926,18 @@ function tabExpenses(root,D){
   });
   root.appendChild(pills);
 
+  /* No 칸은 항상 1,2,3...로 빈틈없이 재정렬된 상태를 유지 (중간 삭제·직접 수정으로 생긴 빈 번호를 자동으로 채움) */
   var items=D.expenses.filter(function(e){return e.date===selDate;});
-  var needMigrate=false;
+  items.sort(function(a,b){return (Number(a.no)||0)-(Number(b.no)||0);});
+  var renumbered=false;
   items.forEach(function(item,idx){
-    if(item.no===undefined||item.no===null||item.no===''){item.no=idx+1;needMigrate=true;}
+    if(Number(item.no)!==idx+1){item.no=idx+1;renumbered=true;}
   });
-  if(needMigrate)saveData(D);
-  var displayItems=items.slice().sort(function(a,b){return (Number(a.no)||0)-(Number(b.no)||0);});
+  if(renumbered)saveData(D);
 
   var T=mkTable([{t:'No',w:34},{t:'카테고리',w:88},{t:'사용내역',w:165},{t:'금액',w:120},{t:'결제',w:58},{t:'비고',w:195},{t:'',w:32}]);
   var dayK=0;
-  displayItems.forEach(function(item){
+  items.forEach(function(item){
     dayK+=toKRW(item.price,item.priceCur,D);
     var tr=el('tr');
     var s=function(full){saveData(D);if(full)re();};
@@ -1944,15 +1945,15 @@ function tabExpenses(root,D){
 
     var noTd=td('rowhead');
     var noInput=el('input');noInput.type='number';noInput.value=item.no==null?'':item.no;
-    var prevNo=item.no;
-    noInput.addEventListener('input',function(){item.no=noInput.value;saveData(D);});
     noInput.addEventListener('change',function(){
       var newNo=Number(noInput.value);
-      if(noInput.value===''||isNaN(newNo)){item.no=prevNo;saveData(D);re();return;}
-      item.no=newNo;
+      if(noInput.value===''||isNaN(newNo)){noInput.value=item.no;return;}
       var dup=items.some(function(it){return it!==item&&Number(it.no)===newNo;});
-      if(dup&&confirm('이미 No '+newNo+'가 있습니다. 기존 항목들을 뒤로 밀고 순서를 조정할까요?')){
-        items.forEach(function(it){if(it!==item&&Number(it.no)>=newNo)it.no=Number(it.no)+1;});
+      if(dup){
+        var pushBack=confirm('이미 No '+newNo+'가 있습니다. 기존 항목들을 뒤로 밀고 순서를 조정할까요?');
+        item.no=pushBack?(newNo-0.5):(newNo+0.5);
+      }else{
+        item.no=newNo;
       }
       saveData(D);re();
     });
