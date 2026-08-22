@@ -591,6 +591,40 @@ function buildExcelWorkbook(D){
   wb.creator='여행 관리';
   wb.created=new Date();
 
+  var dates=dateRange(D.meta.startDate,D.meta.endDate);
+  var costItems=buildCostItems(D,dates);
+
+  var summaryRows=dates.map(function(date){
+    var itin=(D.itinerary||[]).filter(function(x){return x.date===date;})
+      .sort(function(a,b){return (a.time||'').localeCompare(b.time||'');})
+      .map(function(x){return (x.time?x.time+' ':'')+(x.activity||'');}).filter(Boolean);
+    var N=(D.summaryNotes||{})[date]||{};
+    var hotel=(D.hotels||{})[date];
+    var moves=[];
+    (D.flights||[]).forEach(function(j){(j.segs||[]).forEach(function(s){if(s.date===date)moves.push('✈'+(s.from||'')+'→'+(s.to||''));});});
+    (D.rentalcar||[]).forEach(function(r){if(r.date===date)moves.push('🚗'+(r.company||''));});
+    (D.tours||[]).forEach(function(t){if(t.date===date)moves.push('🧭'+(t.tourName||''));});
+    var dayK=0;
+    costItems.forEach(function(c){if(c.date===date)dayK+=toKRW(c.price,c.priceCur,D);});
+    return [date,N.summary||itin.join('\n'),hotel&&hotel.name?hotel.name:'',moves.join('\n'),dayK||'',N.memo||''];
+  });
+  var preItems=[];
+  (D.flights||[]).forEach(function(j){if(j.price)preItems.push('✈'+(j.agency||'항공권'));});
+  groupHotelStays(D,dates).forEach(function(g){if(g.h.price)preItems.push('🏨'+(g.h.name||'호텔'));});
+  (D.tours||[]).forEach(function(t){if(t.price)preItems.push('🧭'+(t.tourName||'투어'));});
+  (D.rentalcar||[]).forEach(function(r){if(r.price)preItems.push('🚗'+(r.company||'렌트카'));});
+  (D.expenses||[]).forEach(function(e){if(e.date===PRE_TRIP&&!e.impTab&&(e.item||e.cat))preItems.push(e.item||e.cat);});
+  var preK=0;
+  costItems.forEach(function(c){if(c.date===PRE_TRIP)preK+=toKRW(c.price,c.priceCur,D);});
+  summaryRows.push(['출발전',preItems.join('\n'),'','',preK||'','']);
+  addExcelSheet(wb,'SUMMARY',['일정','요약','호텔','이동','사용금액(원)','비고'],summaryRows,4);
+
+  var itinRows=(D.itinerary||[]).slice().sort(function(a,b){
+    var dc=(a.date||'').localeCompare(b.date||'');if(dc)return dc;
+    return (a.time||'').localeCompare(b.time||'');
+  }).map(function(x){return [x.date,x.time||'',x.endTime||'',x.activity||'',x.memo||''];});
+  addExcelSheet(wb,'일정',['날짜','시작시간','종료시간','내용','메모'],itinRows);
+
   var flightRows=[];
   (D.flights||[]).forEach(function(j){
     (j.segs||[]).forEach(function(s,si){
@@ -600,7 +634,6 @@ function buildExcelWorkbook(D){
   });
   addExcelSheet(wb,'항공',['여정','날짜','출발','도착','항공사','편명','출발지','도착지','예약처','금액','통화','결제','비고'],flightRows,9);
 
-  var dates=dateRange(D.meta.startDate,D.meta.endDate);
   var hotelRows=dates.map(function(d){
     var h=(D.hotels||{})[d]||{};
     return [d,h.name||'',h.place||'',h.agency||'',h.price||'',h.priceCur||'',h.payment||'',h.memo||''];
@@ -1190,22 +1223,11 @@ function setupBar(root,D,onRe){
 
 
 /* ===== 0. SUMMARY ===== */
-function tabSummary(root,D){
-  var re=function(){tabSummary(root,D);};
-  root.innerHTML='';
-  root.appendChild(setupBar(root,D,re));
-
-  var dates=dateRange(D.meta.startDate,D.meta.endDate);
-  root.appendChild(secHead('전체 요약',dates.length?dates.length+'일':''));
-  if(!dates.length){root.appendChild(el('div','empty','시작일과 종료일을 입력해주세요.'));return;}
-
-  var T=mkTable([{t:'일정',w:52},{t:'요약',w:130},{t:'호텔',w:100},{t:'이동',w:130},{t:'사용금액',w:138},{t:'비고',w:160}]);
-  D.summaryNotes=D.summaryNotes||{};
-
-  /* 항공·호텔·투어·렌트카·지출노트 5개 탭의 금액을 집계.
-     항공/호텔/투어/렌트카는 보통 출발 전에 미리 결제하므로(지출노트 가져오기와 동일한 기준)
-     실제 이용 날짜와 상관없이 항상 '출발전'으로 잡는다.
-     지출노트에서 "가져오기"로 가져온 항목(impTab 있음)은 원본 탭에서 이미 집계되므로 제외해 중복계산을 막는다. */
+/* 항공·호텔·투어·렌트카·지출노트 5개 탭의 금액을 집계.
+   항공/호텔/투어/렌트카는 보통 출발 전에 미리 결제하므로(지출노트 가져오기와 동일한 기준)
+   실제 이용 날짜와 상관없이 항상 '출발전'으로 잡는다.
+   지출노트에서 "가져오기"로 가져온 항목(impTab 있음)은 원본 탭에서 이미 집계되므로 제외해 중복계산을 막는다. */
+function buildCostItems(D,dates){
   function assignDate(d){return (d&&dates.indexOf(d)>-1)?d:PRE_TRIP;}
   var costItems=[];
   (D.flights||[]).forEach(function(j){
@@ -1228,7 +1250,21 @@ function tabSummary(root,D){
     if(!e.price)return;
     costItems.push({date:e.date===PRE_TRIP?PRE_TRIP:assignDate(e.date),price:e.price,priceCur:e.priceCur});
   });
+  return costItems;
+}
+function tabSummary(root,D){
+  var re=function(){tabSummary(root,D);};
+  root.innerHTML='';
+  root.appendChild(setupBar(root,D,re));
 
+  var dates=dateRange(D.meta.startDate,D.meta.endDate);
+  root.appendChild(secHead('전체 요약',dates.length?dates.length+'일':''));
+  if(!dates.length){root.appendChild(el('div','empty','시작일과 종료일을 입력해주세요.'));return;}
+
+  var T=mkTable([{t:'일정',w:52},{t:'요약',w:130},{t:'호텔',w:100},{t:'이동',w:130},{t:'사용금액',w:138},{t:'비고',w:160}]);
+  D.summaryNotes=D.summaryNotes||{};
+
+  var costItems=buildCostItems(D,dates);
   var byCur={};var curOrder=[];var grandK=0;
   costItems.forEach(function(c){
     grandK+=toKRW(c.price,c.priceCur,D);
