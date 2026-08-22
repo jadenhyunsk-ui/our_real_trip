@@ -5,6 +5,8 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
 <meta name="theme-color" content="#0F3D3A">
 <title>여행 전체 관리</title>
+<link rel="icon" type="image/png" sizes="512x512" href="icon.png">
+<link rel="apple-touch-icon" href="icon.png">
 <style>
 :root{
   --bg:#F1F7F3;
@@ -1559,7 +1561,7 @@ function openTimeEditor(D,item,re){
 }
 
 /* ===== 2. 항공 ===== */
-function blankSeg(D){return{id:uid(),date:(D&&D.meta&&D.meta.startDate)||'',time:'',arriveTime:'',airline:'',flightNo:'',from:'',to:''};}
+function blankSeg(D){return{id:uid(),date:(D&&D.meta&&D.meta.startDate)||'',time:'',arriveTime:'',airline:'',flightNo:'',seat:'',from:'',to:''};}
 /* 항공 탭·항공 비교표에 이미 입력된 출발지/도착지를 모아 datalist로 제공 (새로 타이핑 안 해도 골라 쓸 수 있게) */
 function airportOptions(D){
   var set={};
@@ -1587,8 +1589,8 @@ function tabFlights(root,D){
 
   var T=mkTable([
     {t:'여정',w:55},{t:'날짜',w:76},{t:'출발',w:60},{t:'도착',w:60},
-    {t:'항공사',w:66},{t:'편명',w:56},{t:'출발지',w:90},{t:'도착지',w:90},
-    {t:'예약처',w:66},{t:'금액',w:120},{t:'결제',w:58},{t:'비고',w:186},{t:'',w:32}]);
+    {t:'항공사',w:66},{t:'편명',w:56},{t:'좌석',w:56},{t:'출발지',w:90},{t:'도착지',w:90},
+    {t:'예약처',w:66},{t:'예약일',w:76},{t:'예약번호',w:90},{t:'이메일',w:150},{t:'금액',w:120},{t:'결제',w:58},{t:'비고',w:186},{t:'',w:32}]);
 
   journeys.forEach(function(j){
     j.segs=(j.segs&&j.segs.length)?j.segs:[blankSeg(D)];
@@ -1635,12 +1637,16 @@ function tabFlights(root,D){
       cellTime(td(),s,'arriveTime',sv);
       cellInput(td(),s,'airline','text','항공사',si===0?svAirline:sv);
       cellInput(td(),s,'flightNo','text','KE407',sv);
+      cellInput(td(),s,'seat','text','32A',sv);
       cellInput(td(),s,'from','text','출발지',si===0?svFrom:sv).setAttribute('list','airport-dl');
       cellInput(td(),s,'to','text','도착지',si===0?svTo:sv).setAttribute('list','airport-dl');
 
-      /* 예약처·금액·결제·비고는 여정당 한 번만(rowspan) — 반복 입력으로 인한 중복 입력 방지 */
+      /* 예약처·예약번호·이메일·금액·결제·비고는 여정당 한 번만(rowspan) — 반복 입력으로 인한 중복 입력 방지 */
       if(si===0){
         var ca=el('td');ca.rowSpan=span;cellInput(ca,j,'agency','text','예약처',sv);tr.appendChild(ca);
+        var cd=el('td');cd.rowSpan=span;cellDate(cd,j,'resDate',sv);tr.appendChild(cd);
+        var cr=el('td');cr.rowSpan=span;cellInput(cr,j,'resNo','text','예약번호',sv);tr.appendChild(cr);
+        var ce=el('td');ce.rowSpan=span;cellInput(ce,j,'email','text','이메일',sv);tr.appendChild(ce);
         var cm=el('td');cm.rowSpan=span;cellMoney(cm,j,D,sv);tr.appendChild(cm);
         var cp=el('td');cp.rowSpan=span;cellSelect(cp,j,'payment',PAY_OPTS,sv);tr.appendChild(cp);
         var cn=el('td');cn.rowSpan=span;cellInput(cn,j,'memo','text','비고',sv);tr.appendChild(cn);
@@ -1656,7 +1662,7 @@ function tabFlights(root,D){
     });
 
     var addTr=el('tr');
-    var addTd=el('td');addTd.colSpan=13;
+    var addTd=el('td');addTd.colSpan=17;
     var addBtn=el('button',null,'+ 이 여정에 구간 추가 (경유·귀국편 등)');
     addBtn.style.cssText='width:100%;padding:7px;font-size:11.5px;color:var(--navy);';
     addBtn.onclick=function(){j.segs.push(blankSeg(D));saveData(D);re();};
@@ -1669,7 +1675,7 @@ function tabFlights(root,D){
 
   var add=el('button','btn-add','+ 항공 여정 추가');
   add.onclick=function(){
-    D.flights.push({id:uid(),tripType:'왕복',agency:'',price:'',priceCur:localCur(D),payment:'카드',memo:'',segs:[blankSeg(D),blankSeg(D)]});
+    D.flights.push({id:uid(),tripType:'왕복',agency:'',resDate:'',resNo:'',email:'',price:'',priceCur:localCur(D),payment:'카드',memo:'',segs:[blankSeg(D),blankSeg(D)]});
     saveData(D);re();
   };
   root.appendChild(add);
@@ -1698,8 +1704,8 @@ function sumBar(label,arr,D){
 }
 
 /* ===== 3. 호텔 ===== */
-function blankHotelNight(D){return{name:'',place:'',agency:'',price:'',priceCur:localCur(D),payment:'카드',memo:''};}
-function hotelNightSig(h){return [h.name,h.place,h.agency,h.price,h.priceCur,h.payment,h.memo].join('||');}
+function blankHotelNight(D){return{name:'',place:'',agency:'',resDate:'',resNo:'',email:'',price:'',priceCur:localCur(D),payment:'카드',memo:''};}
+function hotelNightSig(h){return [h.name,h.place,h.agency,h.resDate,h.resNo,h.email,h.price,h.priceCur,h.payment,h.memo].join('||');}
 /* 연속된 날짜 중 같은 내용(호텔명·장소·예약처·금액·결제·비고)이면 체크인~체크아웃 한 건으로 묶는다.
    금액은 밤마다 복제 저장되어 있으므로, 합산·가져오기 등에서는 반드시 그룹당 1건으로만 계산해야 한다. */
 function groupHotelStays(D,dates){
@@ -1736,7 +1742,7 @@ function tabHotels(root,D){
   }
 
   var T=mkTable([{t:'체크인',w:76},{t:'체크아웃',w:76},{t:'호텔명',w:168},{t:'장소',w:88},{t:'예약처',w:90},
-                 {t:'금액',w:120},{t:'결제',w:58},{t:'비고',w:150},{t:'',w:32}]);
+                 {t:'예약일',w:76},{t:'예약번호',w:90},{t:'이메일',w:150},{t:'금액',w:120},{t:'결제',w:58},{t:'비고',w:150},{t:'',w:32}]);
   var list=[];
   groups.forEach(function(g){
     var h=g.h;
@@ -1770,6 +1776,9 @@ function tabHotels(root,D){
     cellInput(td(),h,'name','text','호텔명',s);
     cellInput(td(),h,'place','text','장소',s);
     cellInput(td(),h,'agency','text','예약처',s);
+    cellDate(td(),h,'resDate',s);
+    cellInput(td(),h,'resNo','text','예약번호',s);
+    cellInput(td(),h,'email','text','이메일',s);
     cellMoney(td(),h,D,s);
     cellSelect(td(),h,'payment',PAY_OPTS,s);
     cellInput(td(),h,'memo','text','비고',s);
@@ -1800,7 +1809,7 @@ function tabTours(root,D){
   root.appendChild(secHead('투어',D.tours.length+'건'));
 
   var T=mkTable([{t:'날짜',w:76},{t:'지역',w:88},{t:'투어명',w:170},
-                 {t:'프로그램',w:48},{t:'예약처',w:52},{t:'금액',w:120},{t:'결제',w:58},{t:'비고',w:191},{t:'',w:32}]);
+                 {t:'프로그램',w:48},{t:'예약처',w:52},{t:'예약일',w:76},{t:'예약번호',w:90},{t:'이메일',w:150},{t:'금액',w:120},{t:'결제',w:58},{t:'비고',w:191},{t:'',w:32}]);
   var sortedTours=D.tours.slice().sort(function(a,b){return (a.date||'').localeCompare(b.date||'');});
   sortedTours.forEach(function(t){
     var tr=el('tr');
@@ -1811,6 +1820,9 @@ function tabTours(root,D){
     cellInput(td(),t,'tourName','text','Silverswift',function(full){saveData(D);if(full)re();});
     cellInput(td(),t,'program','text','프로그램명',s);
     cellInput(td(),t,'agency','text','예약처',s);
+    cellDate(td(),t,'resDate',s);
+    cellInput(td(),t,'resNo','text','예약번호',s);
+    cellInput(td(),t,'email','text','이메일',s);
     cellMoney(td(),t,D,s);
     cellSelect(td(),t,'payment',PAY_OPTS,s);
     cellInput(td(),t,'memo','text','비고',s);
@@ -1822,7 +1834,7 @@ function tabTours(root,D){
 
   var add=el('button','btn-add','+ 투어 추가');
   add.onclick=function(){
-    D.tours.push({id:uid(),date:D.meta.startDate||'',region:'',tourName:'',program:'',agency:'',
+    D.tours.push({id:uid(),date:D.meta.startDate||'',region:'',tourName:'',program:'',agency:'',resDate:'',resNo:'',email:'',
       price:'',priceCur:localCur(D),payment:'카드',memo:''});
     saveData(D);re();
   };
@@ -1989,7 +2001,7 @@ function tabRental(root,D){
   root.appendChild(setupBar(root,D,re));
   root.appendChild(secHead('렌트카',D.rentalcar.length+'건'));
 
-  var T=mkTable([{t:'날짜',w:76},{t:'시간',w:60},{t:'업체',w:95},{t:'차종',w:100},
+  var T=mkTable([{t:'날짜',w:76},{t:'시간',w:60},{t:'업체',w:95},{t:'차종',w:100},{t:'예약일',w:76},{t:'예약번호',w:90},{t:'이메일',w:150},
                  {t:'가격',w:120},{t:'보험',w:80},{t:'결제',w:58},{t:'비고',w:179},{t:'',w:32}]);
   D.rentalcar.forEach(function(r,idx){
     var tr=el('tr');
@@ -1999,6 +2011,9 @@ function tabRental(root,D){
     cellTime(td(),r,'time',s);
     cellInput(td(),r,'company','text','Hertz',s);
     cellInput(td(),r,'carType','text','Corolla 동급',s);
+    cellDate(td(),r,'resDate',s);
+    cellInput(td(),r,'resNo','text','예약번호',s);
+    cellInput(td(),r,'email','text','이메일',s);
     cellMoney(td(),r,D,s);
     cellInput(td(),r,'insurance','text','자차 풀커버',s);
     cellSelect(td(),r,'payment',PAY_OPTS,s);
@@ -2011,7 +2026,7 @@ function tabRental(root,D){
 
   var add=el('button','btn-add','+ 렌트카 추가');
   add.onclick=function(){
-    D.rentalcar.push({id:uid(),date:D.meta.startDate||'',time:'',company:'',carType:'',price:'',
+    D.rentalcar.push({id:uid(),date:D.meta.startDate||'',time:'',company:'',carType:'',resDate:'',resNo:'',email:'',price:'',
       priceCur:localCur(D),insurance:'',payment:'카드',memo:''});
     saveData(D);re();
   };
