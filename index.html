@@ -247,15 +247,53 @@ tr.subtotal td.num{text-align:right;font-family:var(--mono);color:var(--coral);}
   opacity:0;pointer-events:none;transition:all .2s;z-index:200;box-shadow:0 3px 12px rgba(0,0,0,.15);}
 .toast.show{opacity:1;transform:translateX(-50%) translateY(0);}
 
+/* ===== 로그인 ===== */
+.login-overlay{position:fixed;inset:0;background:var(--bg);z-index:300;
+  display:flex;align-items:center;justify-content:center;padding:20px;}
+.login-card{background:var(--card);border:1px solid var(--line);border-radius:12px;
+  padding:28px 24px;width:100%;max-width:320px;box-shadow:0 4px 16px rgba(15,61,58,.1);}
+.login-card h2{font-size:20px;font-weight:700;margin:0 0 4px;text-align:center;color:var(--navy);}
+.login-card p{margin:0 0 18px;font-size:12px;color:var(--muted);text-align:center;}
+.login-field{margin-bottom:12px;}
+.login-field label{display:block;font-size:12px;color:var(--muted);margin-bottom:4px;}
+.login-field input{width:100%;padding:9px 10px;border-radius:8px;border:1.5px solid var(--line);
+  font-size:14px;box-sizing:border-box;}
+.login-field input:focus{outline:none;border-color:var(--coral);}
+.login-submit{width:100%;padding:11px;border-radius:20px;border:none;background:var(--coral);color:#fff;
+  font-weight:700;font-size:13.5px;cursor:pointer;margin-top:4px;}
+.login-submit:disabled{opacity:.6;cursor:default;}
+.login-error{color:var(--red);font-size:12px;margin-top:10px;text-align:center;min-height:14px;}
+
 </style>
 </head>
 <body>
+<div class="login-overlay" id="loginOverlay">
+  <div class="login-card">
+    <h2>여행 전체 관리</h2>
+    <p>가족 로그인 후 이용할 수 있어요</p>
+    <form id="loginForm">
+      <div class="login-field">
+        <label for="loginEmail">이메일</label>
+        <input type="email" id="loginEmail" required autocomplete="username">
+      </div>
+      <div class="login-field">
+        <label for="loginPassword">비밀번호</label>
+        <input type="password" id="loginPassword" required autocomplete="current-password">
+      </div>
+      <button type="submit" class="login-submit" id="loginSubmitBtn">로그인</button>
+      <div class="login-error" id="loginError"></div>
+    </form>
+  </div>
+</div>
+<div id="appRoot" style="display:none;">
 <div id="tripbar"></div>
 <div id="appbar"></div>
 <nav class="tabbar" id="tabbar"></nav>
 <main id="content"></main>
+</div>
 <div id="toast" class="toast">저장됨 ✓</div>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-database-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-storage-compat.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/exceljs@4.4.0/dist/exceljs.min.js"></script>
@@ -707,6 +745,7 @@ var firebaseConfig={
   messagingSenderId:"813263924653",
   appId:"1:813263924653:web:bd562f1e5ad0ed97678524"
 };
+try{firebase.initializeApp(firebaseConfig);}catch(e){console.error(e);}
 var curSection=null,curTab=null;
 /* 날짜 탭(일정·지출노트) 선택 상태 — 동기화 대상(D.meta)과 분리된 로컬 전용 상태.
    D.meta 안에 두면 원격 동기화 시 덮어써져 편집 후 첫 날짜로 되돌아가는 문제가 있었음. */
@@ -746,7 +785,6 @@ var fbStorage=null;
 function fbInit(){
   try{
     if(typeof firebase==='undefined'){fbStatus='error';updateSyncPill();return;}
-    firebase.initializeApp(firebaseConfig);
     fbRef=firebase.database().ref('trip');
     fbRef.on('value',onFbValue,function(err){fbStatus='error';console.error('firebase',err);updateSyncPill();});
     try{if(firebase.storage)fbStorage=firebase.storage();}catch(se){console.error('storage init',se);}
@@ -1013,12 +1051,16 @@ function buildAppBar(host){
        '<button class="ab-btn excel" id="bXls" title="엑셀로 내보내기">'+ICON_EXCEL+'</button>'+
        '<button class="ab-btn" id="bExp" title="내보내기">'+ICON_DOWNLOAD+'</button>'+
        '<button class="ab-btn" id="bImp" title="가져오기">'+ICON_UPLOAD+'</button>'+
+       '<button class="ab-btn" id="bLogout" title="로그아웃">🚪</button>'+
        '<input type="file" id="fImp" accept="application/json" hidden></div>'+
    '</div></div>';
   host.querySelector('#bXls').onclick=exportExcel;
   host.querySelector('#bExp').onclick=exportData;
   host.querySelector('#fImp').onchange=function(e){var f=e.target.files[0];if(f)importFile(f,function(){location.reload();});};
   host.querySelector('#bImp').onclick=function(){host.querySelector('#fImp').click();};
+  host.querySelector('#bLogout').onclick=function(){
+    if(confirm('로그아웃 하시겠어요?')){try{firebase.auth().signOut();}catch(e){console.error(e);}}
+  };
   updateSyncPill();
 }
 
@@ -2308,47 +2350,122 @@ function tabChecklist(root,D){
 }
 
 
-var AllData = loadData();
-var activeTripId = localStorage.getItem(ACTIVE_KEY);
-if(!activeTripId||!AllData.trips[activeTripId])activeTripId=AllData.tripOrder[0];
-var D = AllData.trips[activeTripId];
-var TABS=[
- {k:'summary',  l:'SUMMARY',   s:'여행 전체 집계',        sec:'summaryNotes', r:function(x){tabSummary(x,D);}},
- {k:'itinerary',l:'일정',       s:'기간 · 타임테이블',      sec:'itinerary',    r:function(x){tabItinerary(x,D);}},
- {k:'flights',  l:'항공',       s:'출발 · 도착 항공편',     sec:'flights',      r:function(x){tabFlights(x,D);}},
- {k:'hotels',   l:'호텔',       s:'날짜별 숙박',           sec:'hotels',       r:function(x){tabHotels(x,D);}},
- {k:'tours',    l:'투어',       s:'지역별 투어 예약',       sec:'tours',        r:function(x){tabTours(x,D);}},
- {k:'expenses', l:'지출노트',    s:'날짜별 소비 · 소계',     sec:'expenses',     r:function(x){tabExpenses(x,D);}},
- {k:'rentalcar',l:'렌트카',     s:'예약 정보 · 업체 비교',   sec:'rentalcar',    r:function(x){tabRental(x,D);}},
- {k:'records',  l:'링크/이미지 기록', s:'제목 · 링크 · 이미지',   sec:'records',      r:function(x){tabRecords(x,D,'records','링크/이미지 기록');}},
- {k:'ideas',    l:'아이디어공간', s:'제목 · 내용 · 비고',   sec:'ideas',        r:function(x){tabIdeas(x,D);}},
- {k:'checklist',l:'체크리스트',  s:'출발 전 준비 확인',    sec:'checklist',    r:function(x){tabChecklist(x,D);}}
-];
-var bar=document.getElementById('appbar'),tb=document.getElementById('tabbar'),ct=document.getElementById('content'),tripBarEl=document.getElementById('tripbar');
-function show(k){
-  var t=null;
-  for(var i=0;i<TABS.length;i++){if(TABS[i].k===k){t=TABS[i];break;}}
-  if(!t)t=TABS[0];
-  try{location.hash=t.k;}catch(e){}
-  for(var j=0;j<tb.children.length;j++){
-    var b=tb.children[j];
-    b.className=(b.getAttribute('data-k')===t.k)?'tab-btn active':'tab-btn';
-  }
-  curSection=t.sec;curTab=t;
-  buildTripBar(tripBarEl);
-  buildAppBar(bar);
-  window.scrollTo(0,0);
-  t.r(ct);
+var AllData,activeTripId,D,TABS,bar,tb,ct,tripBarEl,show;
+var appStarted=false;
+function startApp(){
+  if(appStarted)return;
+  appStarted=true;
+  AllData=loadData();
+  activeTripId=localStorage.getItem(ACTIVE_KEY);
+  if(!activeTripId||!AllData.trips[activeTripId])activeTripId=AllData.tripOrder[0];
+  D=AllData.trips[activeTripId];
+  TABS=[
+   {k:'summary',  l:'SUMMARY',   s:'여행 전체 집계',        sec:'summaryNotes', r:function(x){tabSummary(x,D);}},
+   {k:'itinerary',l:'일정',       s:'기간 · 타임테이블',      sec:'itinerary',    r:function(x){tabItinerary(x,D);}},
+   {k:'flights',  l:'항공',       s:'출발 · 도착 항공편',     sec:'flights',      r:function(x){tabFlights(x,D);}},
+   {k:'hotels',   l:'호텔',       s:'날짜별 숙박',           sec:'hotels',       r:function(x){tabHotels(x,D);}},
+   {k:'tours',    l:'투어',       s:'지역별 투어 예약',       sec:'tours',        r:function(x){tabTours(x,D);}},
+   {k:'expenses', l:'지출노트',    s:'날짜별 소비 · 소계',     sec:'expenses',     r:function(x){tabExpenses(x,D);}},
+   {k:'rentalcar',l:'렌트카',     s:'예약 정보 · 업체 비교',   sec:'rentalcar',    r:function(x){tabRental(x,D);}},
+   {k:'records',  l:'링크/이미지 기록', s:'제목 · 링크 · 이미지',   sec:'records',      r:function(x){tabRecords(x,D,'records','링크/이미지 기록');}},
+   {k:'ideas',    l:'아이디어공간', s:'제목 · 내용 · 비고',   sec:'ideas',        r:function(x){tabIdeas(x,D);}},
+   {k:'checklist',l:'체크리스트',  s:'출발 전 준비 확인',    sec:'checklist',    r:function(x){tabChecklist(x,D);}}
+  ];
+  bar=document.getElementById('appbar');tb=document.getElementById('tabbar');ct=document.getElementById('content');tripBarEl=document.getElementById('tripbar');
+  show=function(k){
+    var t=null;
+    for(var i=0;i<TABS.length;i++){if(TABS[i].k===k){t=TABS[i];break;}}
+    if(!t)t=TABS[0];
+    try{location.hash=t.k;}catch(e){}
+    for(var j=0;j<tb.children.length;j++){
+      var b=tb.children[j];
+      b.className=(b.getAttribute('data-k')===t.k)?'tab-btn active':'tab-btn';
+    }
+    curSection=t.sec;curTab=t;
+    buildTripBar(tripBarEl);
+    buildAppBar(bar);
+    window.scrollTo(0,0);
+    t.r(ct);
+  };
+  TABS.forEach(function(t){
+    var b=document.createElement('button');
+    b.className='tab-btn';b.setAttribute('data-k',t.k);b.textContent=t.l;
+    b.onclick=function(){show(t.k);};
+    tb.appendChild(b);
+  });
+  show((location.hash||'').replace('#','')||'summary');
+  window.scrollTo(0,tb.offsetTop);
+  fbInit();
 }
-TABS.forEach(function(t){
-  var b=document.createElement('button');
-  b.className='tab-btn';b.setAttribute('data-k',t.k);b.textContent=t.l;
-  b.onclick=function(){show(t.k);};
-  tb.appendChild(b);
+function stopApp(){
+  appStarted=false;
+  if(fbRef){try{fbRef.off();}catch(e){}fbRef=null;}
+  fbStatus='connecting';
+}
+
+/* ===== 로그인 ===== */
+var loginOverlay=document.getElementById('loginOverlay');
+var appRoot=document.getElementById('appRoot');
+var loginForm=document.getElementById('loginForm');
+var loginEmail=document.getElementById('loginEmail');
+var loginPassword=document.getElementById('loginPassword');
+var loginError=document.getElementById('loginError');
+var loginSubmitBtn=document.getElementById('loginSubmitBtn');
+
+loginForm.addEventListener('submit',function(e){
+  e.preventDefault();
+  loginError.textContent='';
+  loginSubmitBtn.disabled=true;
+  try{
+    firebase.auth().signInWithEmailAndPassword(loginEmail.value.trim(),loginPassword.value)
+      .catch(function(err){
+        console.error('login error',err);
+        var friendly={
+          'auth/invalid-credential':'이메일 또는 비밀번호가 올바르지 않아요.',
+          'auth/wrong-password':'이메일 또는 비밀번호가 올바르지 않아요.',
+          'auth/user-not-found':'이메일 또는 비밀번호가 올바르지 않아요.',
+          'auth/invalid-email':'이메일 형식이 올바르지 않아요.',
+          'auth/too-many-requests':'시도가 너무 많아요. 잠시 후 다시 시도해주세요.',
+          'auth/network-request-failed':'네트워크 연결을 확인해주세요.'
+        };
+        loginError.textContent=friendly[err.code]||('로그인 실패 ('+(err.code||'unknown')+'): '+(err.message||err));
+      })
+      .finally(function(){loginSubmitBtn.disabled=false;});
+  }catch(err){
+    console.error('login call error',err);
+    loginError.textContent='로그인 오류: '+(err.message||err);
+    loginSubmitBtn.disabled=false;
+  }
 });
-show((location.hash||'').replace('#','')||'summary');
-window.scrollTo(0,tb.offsetTop);
-fbInit();
+
+async function initAuth(){
+  try{
+    await firebase.auth().setPersistence(firebase.auth.Auth.Persistence.LOCAL);
+  }catch(err){
+    console.error('persistence LOCAL failed, falling back to NONE',err);
+    try{await firebase.auth().setPersistence(firebase.auth.Auth.Persistence.NONE);}
+    catch(err2){console.error('persistence NONE also failed',err2);}
+  }
+  try{
+    firebase.auth().onAuthStateChanged(function(user){
+      if(user){
+        loginOverlay.style.display='none';
+        appRoot.style.display='';
+        loginError.textContent='';
+        loginForm.reset();
+        startApp();
+      }else{
+        loginOverlay.style.display='flex';
+        appRoot.style.display='none';
+        stopApp();
+      }
+    });
+  }catch(err){
+    console.error('auth init error',err);
+    loginError.textContent='로그인 기능을 초기화하지 못했어요: '+(err.message||err);
+  }
+}
+initAuth();
 
 </script>
 </body>
