@@ -421,6 +421,7 @@ function defaultTourCompare(){return [
 ];}
 
 var CHECKLIST_CATS=['서류·예약','짐싸기','출발 전 집안일','현지 대비'];
+var CHECKLIST_CAT_OPTS=CHECKLIST_CATS.concat(['미지정']);
 function defaultChecklist(){
   function mk(category,text){return{id:uid(),category:category,text:text,done:false,memo:''};}
   return [
@@ -2290,7 +2291,7 @@ function tabChecklist(root,D){
     chk.addEventListener('change',function(){item.done=chk.checked;saveData(D);re();});
     cs.appendChild(chk);tr.appendChild(cs);
 
-    cellSelect(td(),item,'category',CHECKLIST_CATS,s);
+    cellSelect(td(),item,'category',CHECKLIST_CAT_OPTS,s);
     cellInput(td(),item,'text','text','항목',s);
     cellInput(td(),item,'memo','text','비고',s);
     delCell(tr,function(){
@@ -2302,7 +2303,7 @@ function tabChecklist(root,D){
   scrollHint(T.wrap);
 
   var add=el('button','btn-add','+ 항목 추가');
-  add.onclick=function(){D.checklist.push({id:uid(),category:CHECKLIST_CATS[0],text:'',done:false,memo:''});saveData(D);re();};
+  add.onclick=function(){D.checklist.push({id:uid(),category:'미지정',text:'',done:false,memo:''});saveData(D);re();};
   root.appendChild(add);
 }
 
