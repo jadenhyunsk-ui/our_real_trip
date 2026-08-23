@@ -581,7 +581,7 @@ function importFromHotels(D){
   if(!tripDates.length)return -1;
   var existing={};
   D.hotelCompare.forEach(function(c){if(c.importedFrom)existing[c.importedFrom]=true;});
-  function sig(h){return [h.name,h.place,h.agency,h.price,h.priceCur,h.payment,h.memo].join('||');}
+  function sig(h){return [h.name,h.place,h.agency,h.resDate,h.resNo,h.email,h.price,h.priceCur,h.payment,h.memo].join('||');}
   var groups=[];
   var cur=null;
   tripDates.forEach(function(date){
@@ -686,7 +686,9 @@ function renderHotelCompareTable(root,D){
         if(!ds.length){skipped.push(c.name||'(이름 없음)');return;}
       }
       ds.forEach(function(d){
+        var existing=D.hotels[d]||{};
         D.hotels[d]={name:c.name||'',place:c.place||'',agency:c.agency||'',
+          resDate:existing.resDate||'',resNo:existing.resNo||'',email:existing.email||'',
           price:c.price||'',priceCur:c.priceCur||localCur(D),payment:c.payment||'카드',memo:c.memo||''};
         count++;
       });

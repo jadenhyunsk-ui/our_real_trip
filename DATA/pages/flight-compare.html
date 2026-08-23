@@ -617,7 +617,7 @@ function importFromFlights(D){
       tripType:j.tripType||'왕복',agency:j.agency||'',price:j.price||'',priceCur:j.priceCur||localCur(D),
       payment:j.payment||'카드',pros:'',cons:'',memo:j.memo||'',
       segs:(j.segs||[]).map(function(s){return{id:uid(),date:s.date||'',time:s.time||'',arriveTime:s.arriveTime||'',
-        airline:s.airline||'',flightNo:s.flightNo||'',from:s.from||'',to:s.to||''};})
+        airline:s.airline||'',flightNo:s.flightNo||'',seat:s.seat||'',from:s.from||'',to:s.to||''};})
     });
     added++;
   });
@@ -739,7 +739,7 @@ function renderFlightCompareTable(root,D){
     chosen.forEach(function(c){
       var segs=(c.segs&&c.segs.length?c.segs:[blankSeg(D)]).map(function(s){
         return{id:uid(),date:s.date||'',time:s.time||'',arriveTime:s.arriveTime||'',
-          airline:s.airline||'',flightNo:s.flightNo||'',from:s.from||'',to:s.to||''};
+          airline:s.airline||'',flightNo:s.flightNo||'',seat:s.seat||'',from:s.from||'',to:s.to||''};
       });
       var target=c.importedFrom?D.flights.filter(function(x){return x.id===c.importedFrom;})[0]:null;
       var j=target||{id:uid()};
