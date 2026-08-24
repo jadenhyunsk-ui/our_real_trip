@@ -216,6 +216,7 @@ tr.subtotal td.num{text-align:right;font-family:var(--mono);color:var(--coral);}
 .tl-time{font-size:9px;font-family:var(--mono);color:var(--coral);font-weight:700;line-height:1.2;}
 .tl-activity{width:100%;border:none;background:transparent;font-size:12.5px;padding:1px 0;outline:none;color:var(--ink);
   font-family:inherit;line-height:1.35;resize:none;overflow-y:auto;}
+.tl-memo{font-size:11px;font-style:italic;color:var(--muted);line-height:1.3;padding:1px 0 2px;white-space:pre-wrap;}
 .tl-del{position:absolute;top:2px;right:2px;font-size:9px;color:var(--red);width:16px;height:16px;line-height:16px;text-align:center;z-index:3;}
 .tl-handle{position:absolute;bottom:0;left:0;right:0;height:11px;cursor:ns-resize;text-align:center;
   font-size:8px;color:var(--muted);line-height:9px;touch-action:none;letter-spacing:1px;}
@@ -1520,6 +1521,10 @@ function buildBlock(D,item,st,en,re){
   act.addEventListener('click',function(e){e.stopPropagation();});
   act.addEventListener('keydown',function(e){e.stopPropagation();});
   blk.appendChild(act);
+
+  if(item.memo){
+    blk.appendChild(el('div','tl-memo',item.memo));
+  }
 
   var del=el('button','tl-del','✕');
   del.onclick=function(e){e.stopPropagation();var q=D.itinerary.indexOf(item);if(q>-1){D.itinerary.splice(q,1);saveData(D);re();}};
