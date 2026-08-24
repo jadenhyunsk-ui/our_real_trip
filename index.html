@@ -1445,7 +1445,30 @@ function tabItinerary(root,D){
     var b=el('button','daypill'+(date===selDate?' active':''));
     var bWk=wk(date);
     b.innerHTML='<span class="'+wkClass(bWk)+'">'+mmdd(date)+' ('+bWk+')</span>';
-    b.onclick=function(){setUiTab('itin',date);re();};
+
+    /* 날짜 알약을 오래 누르고 있으면 그 날짜의 일정을 모두 지울지 확인 후 삭제 */
+    var longPressTimer=null,longPressFired=false;
+    b.addEventListener('pointerdown',function(){
+      longPressFired=false;
+      longPressTimer=setTimeout(function(){
+        longPressFired=true;
+        var dayItems=D.itinerary.filter(function(x){return x.date===date;});
+        if(!dayItems.length){alert(mmdd(date)+' ('+bWk+')에는 등록된 일정이 없습니다.');return;}
+        if(confirm(mmdd(date)+' ('+bWk+') 일정을 모두 삭제할까요? ('+dayItems.length+'개, 되돌릴 수 없습니다)')){
+          D.itinerary=D.itinerary.filter(function(x){return x.date!==date;});
+          saveData(D);re();
+        }
+      },600);
+    });
+    function cancelLongPress(){if(longPressTimer){clearTimeout(longPressTimer);longPressTimer=null;}}
+    b.addEventListener('pointerup',cancelLongPress);
+    b.addEventListener('pointercancel',cancelLongPress);
+    b.addEventListener('pointerleave',cancelLongPress);
+    b.addEventListener('contextmenu',function(e){e.preventDefault();});
+    b.onclick=function(){
+      if(longPressFired){longPressFired=false;return;}
+      setUiTab('itin',date);re();
+    };
     pills.appendChild(b);
   });
   root.appendChild(pills);
