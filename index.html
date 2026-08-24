@@ -816,8 +816,13 @@ function onFbValue(snap){
   var newTrips={};
   order.forEach(function(tid){
     var rt=remote.trips[tid];
-    if(!rt)return;
     var lt=AllData.trips[tid];
+    if(!rt){
+      /* tripOrder엔 있는데 trips엔 아직 없는 반쪽짜리 스냅샷(비원자적 쓰기 도중 등) —
+         로컬에 이미 있는 여행이면 지우지 말고 그대로 유지 (다음 스냅샷에서 채워짐) */
+      if(lt)newTrips[tid]=lt;
+      return;
+    }
     if(!lt){
       newTrips[tid]=fixTripData(rt);
       changed=true;
@@ -860,15 +865,22 @@ function fbQueueSync(key){
     fbRef.child('trips/'+activeTripId).update(upd).catch(function(e){console.error('fb sync',e);});
   },500);
 }
+/* trips/{tid}와 tripOrder를 각각 따로 set()하면, 그 사이에 실시간 리스너(onFbValue)가
+   "tripOrder엔 있는데 trips엔 아직 없는" 반쪽짜리 스냅샷을 받아 새 여행을 화면에서
+   놓치는 경합이 생길 수 있다. update()로 두 경로를 한 번에 원자적으로 반영해 방지한다. */
 function fbPushNewTrip(tid){
   if(!fbRef)return;
-  fbRef.child('trips/'+tid).set(AllData.trips[tid]).catch(function(e){console.error(e);});
-  fbRef.child('tripOrder').set(AllData.tripOrder).catch(function(e){console.error(e);});
+  var upd={};
+  upd['trips/'+tid]=AllData.trips[tid];
+  upd['tripOrder']=AllData.tripOrder;
+  fbRef.update(upd).catch(function(e){console.error(e);});
 }
 function fbDeleteTrip(tid){
   if(!fbRef)return;
-  fbRef.child('trips/'+tid).remove().catch(function(e){console.error(e);});
-  fbRef.child('tripOrder').set(AllData.tripOrder).catch(function(e){console.error(e);});
+  var upd={};
+  upd['trips/'+tid]=null;
+  upd['tripOrder']=AllData.tripOrder;
+  fbRef.update(upd).catch(function(e){console.error(e);});
 }
 function updateSyncPill(){
   var pill=document.getElementById('syncPill');
