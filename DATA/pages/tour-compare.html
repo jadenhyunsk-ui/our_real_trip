@@ -673,7 +673,10 @@ function renderCompareTable(root,D,arrayKey,starLabels,L){
 
     displayArr.forEach(function(t,idx){
       var tr=el('tr');
-      var sv=function(full){saveData(D);if(full)re();};
+      /* 필드를 수정할 때마다 re()로 전체를 다시 그리면 카테고리(뱃지)순 정렬이
+         바로 다시 적용되어 방금 편집한 행이 다른 위치로 튀어버린다(저장은 됐는데
+         안 된 것처럼 보이는 원인). 저장만 하고 다시 그리지 않아 그 자리 그대로 유지. */
+      var sv=function(){saveData(D);};
       function td(cls){var c=el('td',cls);tr.appendChild(c);return c;}
 
       if(L.groupByCategory){

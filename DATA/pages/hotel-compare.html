@@ -635,7 +635,9 @@ function renderHotelCompareTable(root,D){
 
     D.hotelCompare.forEach(function(h,idx){
       var tr=el('tr');
-      var sv=function(full){saveData(D);if(full)re();};
+      /* 저장만 하고 다시 그리지 않음 - 수정할 때마다 표를 다시 그리면 편집 중이던
+         행에서 포커스/스크롤 위치가 풀려 그 자리를 벗어나 보이는 문제가 있었음 */
+      var sv=function(){saveData(D);};
       function td(cls){var c=el('td',cls);tr.appendChild(c);return c;}
 
       var cs=el('td','sel');
