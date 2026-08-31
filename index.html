@@ -157,8 +157,8 @@ table.grid td input:focus,table.grid td select:focus,table.grid td textarea:focu
    td 자체가 position:sticky(틀고정)일 때 절대위치 자식의 위치 계산이 브라우저마다 어긋나
    글자가 옆 칸과 겹쳐 보이는 문제를 막기 위함(td.ov-cell에 직접 position을 두지 않음). */
 .ov-cell-inner{position:relative;height:100%;}
-.ov-cell-inner .ov-input{color:transparent;position:relative;z-index:1;background:transparent;}
-.ov-cell-inner .ov-input:focus{color:transparent;}
+.ov-cell-inner .ov-input{color:transparent!important;-webkit-text-fill-color:transparent!important;position:relative;z-index:1;background:transparent;}
+.ov-cell-inner .ov-input:focus{color:transparent!important;-webkit-text-fill-color:transparent!important;}
 .ov-cell-inner .ov-label{position:absolute;left:7px;top:50%;transform:translateY(-50%);pointer-events:none;
   font-size:13px;color:var(--ink);white-space:nowrap;z-index:0;
   max-width:calc(100% - 12px);overflow:hidden;text-overflow:ellipsis;}
