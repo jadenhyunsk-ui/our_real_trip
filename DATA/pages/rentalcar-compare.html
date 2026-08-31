@@ -98,9 +98,46 @@ table.grid td.del button{width:100%;padding:8px 0;color:var(--red);font-size:13p
   opacity:0;pointer-events:none;transition:all .2s;z-index:200;box-shadow:0 3px 12px rgba(0,0,0,.15);}
 .toast.show{opacity:1;transform:translateX(-50%) translateY(0);}
 
+/* ===== 로그인 ===== */
+.login-overlay{position:fixed;inset:0;background:var(--bg);z-index:300;
+  display:flex;align-items:center;justify-content:center;padding:20px;}
+.login-card{background:var(--card);border:1px solid var(--line);border-radius:12px;
+  padding:28px 24px;width:100%;max-width:320px;box-shadow:0 4px 16px rgba(15,61,58,.1);}
+.login-card h2{font-size:20px;font-weight:700;margin:0 0 4px;text-align:center;color:var(--navy);}
+.login-card p{margin:0 0 18px;font-size:12px;color:var(--muted);text-align:center;}
+.login-field{margin-bottom:12px;}
+.login-field label{display:block;font-size:12px;color:var(--muted);margin-bottom:4px;}
+.login-field input{width:100%;padding:9px 10px;border-radius:8px;border:1.5px solid var(--line);
+  font-size:14px;box-sizing:border-box;}
+.login-field input:focus{outline:none;border-color:var(--coral);}
+.login-submit{width:100%;padding:11px;border-radius:20px;border:none;background:var(--coral);color:#fff;
+  font-weight:700;font-size:13.5px;cursor:pointer;margin-top:4px;}
+.login-submit:disabled{opacity:.6;cursor:default;}
+.login-error{color:var(--red);font-size:12px;margin-top:10px;text-align:center;min-height:14px;}
+.app-root-hidden{display:none;}
+
 </style>
 </head>
 <body>
+<div class="login-overlay" id="loginOverlay">
+  <div class="login-card">
+    <h2>여행 전체 관리</h2>
+    <p>가족 로그인 후 이용할 수 있어요</p>
+    <form id="loginForm">
+      <div class="login-field">
+        <label for="loginEmail">이메일</label>
+        <input type="email" id="loginEmail" required autocomplete="username">
+      </div>
+      <div class="login-field">
+        <label for="loginPassword">비밀번호</label>
+        <input type="password" id="loginPassword" required autocomplete="current-password">
+      </div>
+      <button type="submit" class="login-submit" id="loginSubmitBtn">로그인</button>
+      <div class="login-error" id="loginError"></div>
+    </form>
+  </div>
+</div>
+<div id="appRoot" class="app-root-hidden">
 <div id="appbar"></div>
 <main>
 <a class="back" href="../../index.html#rentalcar">← 6. 렌트카 탭으로</a>
@@ -108,8 +145,10 @@ table.grid td.del button{width:100%;padding:8px 0;color:var(--red);font-size:13p
 <div id="hintbox" class="hint"></div>
 <div id="cards"></div>
 </main>
+</div>
 <div id="toast" class="toast">저장됨 ✓</div>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-database-compat.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/exceljs@4.4.0/dist/exceljs.min.js"></script>
 <script>
@@ -323,6 +362,7 @@ var firebaseConfig={
   messagingSenderId:"813263924653",
   appId:"1:813263924653:web:bd562f1e5ad0ed97678524"
 };
+try{firebase.initializeApp(firebaseConfig);}catch(e){console.error(e);}
 var curSection='rentalCompare',curRerender=null;
 var fbRef=null,fbStatus='connecting',fbWriteTimers={},pendingRerender=false;
 
@@ -347,7 +387,6 @@ document.addEventListener('focusout',function(){
 function fbInit(){
   try{
     if(typeof firebase==='undefined'){fbStatus='error';updateSyncPill();return;}
-    firebase.initializeApp(firebaseConfig);
     fbRef=firebase.database().ref('trip');
     fbRef.on('value',onFbValue,function(err){fbStatus='error';console.error('firebase',err);updateSyncPill();});
   }catch(e){console.error(e);fbStatus='error';updateSyncPill();}
@@ -481,12 +520,16 @@ function buildAppBar(host){
        '<button class="ab-btn excel" id="bXls" title="엑셀로 내보내기">'+ICON_EXCEL+'</button>'+
        '<button class="ab-btn" id="bExp" title="내보내기">'+ICON_DOWNLOAD+'</button>'+
        '<button class="ab-btn" id="bImp" title="가져오기">'+ICON_UPLOAD+'</button>'+
+       '<button class="ab-btn" id="bLogout" title="로그아웃">로그아웃</button>'+
        '<input type="file" id="fImp" accept="application/json" hidden></div>'+
    '</div></div>';
   host.querySelector('#bXls').onclick=exportExcel;
   host.querySelector('#bExp').onclick=exportData;
   host.querySelector('#fImp').onchange=function(e){var f=e.target.files[0];if(f)importFile(f,function(){location.reload();});};
   host.querySelector('#bImp').onclick=function(){host.querySelector('#fImp').click();};
+  host.querySelector('#bLogout').onclick=function(){
+    if(confirm('로그아웃 하시겠어요?')){try{firebase.auth().signOut();}catch(e){console.error(e);}}
+  };
   updateSyncPill();
 }
 
@@ -570,42 +613,117 @@ function renderCompareTable(root,D,arrayKey,L){
   return re;
 }
 
-var AllData=loadData();
-var activeTripId=localStorage.getItem(ACTIVE_KEY);
-if(!activeTripId||!AllData.trips[activeTripId])activeTripId=AllData.tripOrder[0];
-var D=AllData.trips[activeTripId];
-buildAppBar(document.getElementById('appbar'));
-document.getElementById('hintbox').innerHTML='렌트카 탭과 <b>동일한 표 형식</b>입니다. 업체별 가격·보험 조건·장단점을 비교하세요. <b>선정</b>에 체크 후 맨 아래 버튼을 누르면 체크된 업체가 렌트카 탭에 자동으로 추가됩니다.';
-var L={newName:'새 렌트카 업체',agencyPh:'픽업/드랍',duration:'대여기간·조건',points:'차종',
-  addLabel:'+ 비교할 업체 추가',applyLabel:'✅ 체크한 업체를 렌트카 탭에 반영',
-  importLabel:'📥 현재 렌트카 탭 값 불러오기',
-  mainKey:'rentalcar',mainTabHref:'../../index.html#rentalcar',
-  applyOne:function(c){
-    var target=c.importedFrom?D.rentalcar.filter(function(x){return x.id===c.importedFrom;})[0]:null;
-    var r=target||{id:uid(),date:'',time:''};
-    var pp=parsePriceStr(c.priceText);
-    r.company=c.name||'';r.carType=c.points||'';
-    r.price=pp.amount||r.price||'';r.priceCur=pp.cur||r.priceCur||localCur(D);
-    r.insurance=c.insurance||'';r.payment='카드';r.memo=c.priceText||'';
-    if(c.rentTime)r.time=c.rentTime;
-    if(!target)D.rentalcar.push(r);
-  },
-  importFn:function(D,arr){
-    var existing={};
-    arr.forEach(function(c){if(c.importedFrom)existing[c.importedFrom]=true;});
-    var added=0;
-    D.rentalcar.forEach(function(r){
-      if(!r.company||existing[r.id])return;
-      arr.push({id:uid(),importedFrom:r.id,selected:true,name:r.company,rentPeriod:'',rentTime:r.time||'',
-        agency:'',duration:'',points:r.carType||'',
-        priceText:(r.price?r.price+' '+(r.priceCur||''):''),
-        pros:'',cons:'',insurance:r.insurance||'',diveNote:r.memo||''});
-      added++;
+var AllData,activeTripId,D;
+var appStarted=false;
+function startApp(){
+  if(appStarted)return;
+  appStarted=true;
+  AllData=loadData();
+  activeTripId=localStorage.getItem(ACTIVE_KEY);
+  if(!activeTripId||!AllData.trips[activeTripId])activeTripId=AllData.tripOrder[0];
+  D=AllData.trips[activeTripId];
+  buildAppBar(document.getElementById('appbar'));
+  document.getElementById('hintbox').innerHTML='렌트카 탭과 <b>동일한 표 형식</b>입니다. 업체별 가격·보험 조건·장단점을 비교하세요. <b>선정</b>에 체크 후 맨 아래 버튼을 누르면 체크된 업체가 렌트카 탭에 자동으로 추가됩니다.';
+  var L={newName:'새 렌트카 업체',agencyPh:'픽업/드랍',duration:'대여기간·조건',points:'차종',
+    addLabel:'+ 비교할 업체 추가',applyLabel:'✅ 체크한 업체를 렌트카 탭에 반영',
+    importLabel:'📥 현재 렌트카 탭 값 불러오기',
+    mainKey:'rentalcar',mainTabHref:'../../index.html#rentalcar',
+    applyOne:function(c){
+      var target=c.importedFrom?D.rentalcar.filter(function(x){return x.id===c.importedFrom;})[0]:null;
+      var r=target||{id:uid(),date:'',time:''};
+      var pp=parsePriceStr(c.priceText);
+      r.company=c.name||'';r.carType=c.points||'';
+      r.price=pp.amount||r.price||'';r.priceCur=pp.cur||r.priceCur||localCur(D);
+      r.insurance=c.insurance||'';r.payment='카드';r.memo=c.priceText||'';
+      if(c.rentTime)r.time=c.rentTime;
+      if(!target)D.rentalcar.push(r);
+    },
+    importFn:function(D,arr){
+      var existing={};
+      arr.forEach(function(c){if(c.importedFrom)existing[c.importedFrom]=true;});
+      var added=0;
+      D.rentalcar.forEach(function(r){
+        if(!r.company||existing[r.id])return;
+        arr.push({id:uid(),importedFrom:r.id,selected:true,name:r.company,rentPeriod:'',rentTime:r.time||'',
+          agency:'',duration:'',points:r.carType||'',
+          priceText:(r.price?r.price+' '+(r.priceCur||''):''),
+          pros:'',cons:'',insurance:r.insurance||'',diveNote:r.memo||''});
+        added++;
+      });
+      return added;
+    }};
+  curRerender=renderCompareTable(document.getElementById('cards'),D,'rentalCompare',L);
+  fbInit();
+}
+function stopApp(){
+  appStarted=false;
+  if(fbRef){try{fbRef.off();}catch(e){}fbRef=null;}
+  fbStatus='connecting';
+}
+
+/* ===== 로그인 ===== */
+var loginOverlay=document.getElementById('loginOverlay');
+var appRoot=document.getElementById('appRoot');
+var loginForm=document.getElementById('loginForm');
+var loginEmail=document.getElementById('loginEmail');
+var loginPassword=document.getElementById('loginPassword');
+var loginError=document.getElementById('loginError');
+var loginSubmitBtn=document.getElementById('loginSubmitBtn');
+
+loginForm.addEventListener('submit',function(e){
+  e.preventDefault();
+  loginError.textContent='';
+  loginSubmitBtn.disabled=true;
+  try{
+    firebase.auth().signInWithEmailAndPassword(loginEmail.value.trim(),loginPassword.value)
+      .catch(function(err){
+        console.error('login error',err);
+        var friendly={
+          'auth/invalid-credential':'이메일 또는 비밀번호가 올바르지 않아요.',
+          'auth/wrong-password':'이메일 또는 비밀번호가 올바르지 않아요.',
+          'auth/user-not-found':'이메일 또는 비밀번호가 올바르지 않아요.',
+          'auth/invalid-email':'이메일 형식이 올바르지 않아요.',
+          'auth/too-many-requests':'시도가 너무 많아요. 잠시 후 다시 시도해주세요.',
+          'auth/network-request-failed':'네트워크 연결을 확인해주세요.'
+        };
+        loginError.textContent=friendly[err.code]||('로그인 실패 ('+(err.code||'unknown')+'): '+(err.message||err));
+      })
+      .finally(function(){loginSubmitBtn.disabled=false;});
+  }catch(err){
+    console.error('login call error',err);
+    loginError.textContent='로그인 오류: '+(err.message||err);
+    loginSubmitBtn.disabled=false;
+  }
+});
+
+async function initAuth(){
+  try{
+    await firebase.auth().setPersistence(firebase.auth.Auth.Persistence.LOCAL);
+  }catch(err){
+    console.error('persistence LOCAL failed, falling back to NONE',err);
+    try{await firebase.auth().setPersistence(firebase.auth.Auth.Persistence.NONE);}
+    catch(err2){console.error('persistence NONE also failed',err2);}
+  }
+  try{
+    firebase.auth().onAuthStateChanged(function(user){
+      if(user){
+        loginOverlay.style.display='none';
+        appRoot.classList.remove('app-root-hidden');
+        loginError.textContent='';
+        loginForm.reset();
+        startApp();
+      }else{
+        loginOverlay.style.display='flex';
+        appRoot.classList.add('app-root-hidden');
+        stopApp();
+      }
     });
-    return added;
-  }};
-curRerender=renderCompareTable(document.getElementById('cards'),D,'rentalCompare',L);
-fbInit();
+  }catch(err){
+    console.error('auth init error',err);
+    loginError.textContent='로그인 기능을 초기화하지 못했어요: '+(err.message||err);
+  }
+}
+initAuth();
 
 </script>
 </body>
