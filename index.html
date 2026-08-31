@@ -1691,7 +1691,7 @@ function tabFlights(root,D){
       var sv=function(full){saveData(D);if(full)re();};
       function td(cls){var c=el('td',cls);tr.appendChild(c);return c;}
 
-      var ct=td();
+      var ct=td('rowhead');
       var tt=el('select');
       ['왕복','편도'].forEach(function(o){var op=el('option',null,o);op.value=o;
         if((j.tripType||'왕복')===o)op.selected=true;tt.appendChild(op);});
@@ -1845,7 +1845,7 @@ function tabHotels(root,D){
     };
     function td(cls){var c=el('td',cls);tr.appendChild(c);return c;}
 
-    var tdCi=el('td','ov-cell');
+    var tdCi=el('td','rowhead ov-cell');
     var ci=el('input');ci.type='date';ci.className='ov-input';ci.value=g.first;
     var ciLbl=el('span','ov-label');ciLbl.innerHTML=mmddColored(g.first);
     ci.addEventListener('change',function(){
@@ -1906,7 +1906,7 @@ function tabTours(root,D){
     var tr=el('tr');
     var s=function(full){saveData(D);if(full)re();};
     function td(cls){var c=el('td',cls);tr.appendChild(c);return c;}
-    cellDate(td(),t,'date',s);
+    cellDate(td('rowhead'),t,'date',s);
     cellInput(td(),t,'region','text','케언즈',s);
     cellInput(td(),t,'tourName','text','Silverswift',function(full){saveData(D);if(full)re();});
     cellInput(td(),t,'program','text','프로그램명',s);
@@ -2098,7 +2098,7 @@ function tabRental(root,D){
     var tr=el('tr');
     var s=function(full){saveData(D);if(full)re();};
     function td(cls){var c=el('td',cls);tr.appendChild(c);return c;}
-    cellDate(td(),r,'date',s);
+    cellDate(td('rowhead'),r,'date',s);
     cellTime(td(),r,'time',s);
     cellInput(td(),r,'company','text','Hertz',s);
     cellInput(td(),r,'carType','text','Corolla 동급',s);
