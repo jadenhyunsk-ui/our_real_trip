@@ -113,6 +113,21 @@ main{padding:12px 10px;max-width:100%;}
 .setgrid .sf-row3 .sf{flex:1 1 0;min-width:0;}
 .setgrid .sf-row3 .sf.sf-dest{flex:1.3 1 0;}
 .setgrid .sf-row3 input{padding:7px 4px;font-size:12px;}
+.datemode-row{grid-column:1/-1;display:flex;gap:6px;margin-bottom:2px;}
+.datemode-btn{flex:1 1 0;font-size:11px;font-weight:700;color:var(--muted);background:var(--bg);
+  border:1px solid var(--line);border-radius:6px;padding:7px 4px;}
+.datemode-btn.active{background:var(--navy);color:#fff;border-color:var(--navy);}
+.customdate-wrap{grid-column:1/-1;display:flex;flex-direction:column;gap:6px;}
+.customdate-addrow{display:flex;gap:6px;}
+.customdate-addrow input{flex:1 1 auto;min-width:0;border:1px solid var(--line);border-radius:6px;padding:7px 8px;font-size:12.5px;}
+.customdate-addrow button{flex:0 0 auto;font-size:12px;font-weight:700;color:#fff;background:var(--coral);
+  border-radius:6px;padding:7px 12px;white-space:nowrap;}
+.customdate-chips{display:flex;flex-wrap:wrap;gap:5px;}
+.customdate-chip{display:flex;align-items:center;gap:4px;background:var(--bg);border:1px solid var(--line);
+  border-radius:14px;padding:4px 4px 4px 9px;font-size:11.5px;font-weight:600;color:var(--navy);}
+.customdate-chip button{color:var(--red);font-size:11px;width:18px;height:18px;border-radius:50%;
+  display:flex;align-items:center;justify-content:center;}
+.customdate-empty{font-size:11px;color:var(--muted);padding:2px 0;}
 .cur-field-wrap{display:flex;align-items:center;gap:4px;}
 .cur-field-wrap select{flex:1 1 auto;min-width:0;}
 .btn-addcur,.btn-rmcur{flex:0 0 auto;width:26px;height:26px;border-radius:6px;font-size:13px;font-weight:700;
@@ -399,7 +414,7 @@ function moneyCur(n,cur){
 
 function defaultTripData(){return{
   meta:{title:'첫 여행',destination:'호주 케언즈',currency:'AUD',rate:920,extraCurrencies:[],
-        startDate:'2026-10-23',endDate:'',updatedAt:''},
+        startDate:'2026-10-23',endDate:'',dateMode:'range',customDates:[],updatedAt:''},
   itinerary:[],
   flights:[
     {id:uid(),tripType:'왕복',agency:'',price:'',priceCur:'KRW',payment:'카드',memo:'',
@@ -624,7 +639,7 @@ function buildExcelWorkbook(D){
   wb.creator='여행 관리';
   wb.created=new Date();
 
-  var dates=dateRange(D.meta.startDate,D.meta.endDate);
+  var dates=tripDates(D);
   var costItems=buildCostItems(D,dates);
 
   var summaryRows=dates.map(function(date){
@@ -720,6 +735,17 @@ function dateRange(s,e){var out=[];if(!s||!e)return out;
   var d=new Date(s+'T00:00:00'),en=new Date(e+'T00:00:00');
   if(isNaN(d)||isNaN(en)||d>en)return out;
   while(d<=en){out.push(fmtLocalDate(d));d.setDate(d.getDate()+1);}return out;}
+/* 여행에 속한 날짜 목록 — 기간(range) 모드면 시작~종료일 사이 모든 날, 개별 날짜(custom)
+   모드면 달력에서 하나씩 고른 날짜만(연속되지 않아도 됨. 예: 겨울 시즌 스키장 가는 날만). */
+function tripDates(D){
+  if(D.meta&&D.meta.dateMode==='custom')return (D.meta.customDates||[]).slice().sort();
+  return dateRange(D.meta.startDate,D.meta.endDate);
+}
+function noDatesMsg(D){
+  return (D.meta&&D.meta.dateMode==='custom')
+    ?'여행 설정에서 날짜를 추가하면 날짜별로 정리됩니다.'
+    :'여행 설정에서 여행 기간(시작일~종료일)을 입력해주세요.';
+}
 function wk(s){return ['일','월','화','수','목','금','토'][new Date(s+'T00:00:00').getDay()];}
 function wkClass(w){return w==='토'?'wk-sat':(w==='일'?'wk-sun':'');}
 function mmddColored(s){return s?('<span class="'+wkClass(wk(s))+'">'+mmdd(s)+'</span>'):'';}
@@ -1171,7 +1197,12 @@ function setupBar(root,D,onRe){
   var titleWrap=el('div','setbar-title');
   titleWrap.appendChild(document.createTextNode('여행 설정'));
   var sumParts=[D.meta.destination||'여행지 미입력',localCur(D)];
-  if(D.meta.startDate)sumParts.push(mmddFull(D.meta.startDate)+(D.meta.endDate?'~'+mmddFull(D.meta.endDate):''));
+  if(D.meta.dateMode==='custom'){
+    var sumCds=(D.meta.customDates||[]).slice().sort();
+    if(sumCds.length)sumParts.push(sumCds.length+'일 선택('+mmddFull(sumCds[0])+(sumCds.length>1?'~'+mmddFull(sumCds[sumCds.length-1]):'')+')');
+  }else if(D.meta.startDate){
+    sumParts.push(mmddFull(D.meta.startDate)+(D.meta.endDate?'~'+mmddFull(D.meta.endDate):''));
+  }
   titleWrap.appendChild(el('span','setbar-summary',sumParts.join(' · ')));
   head.appendChild(titleWrap);
   var swLabel=el('label','ios-switch');
@@ -1197,17 +1228,79 @@ function setupBar(root,D,onRe){
     saveData(D,'meta');onRe();
   });
 
-  var sd=el('input');sd.type='date';sd.value=D.meta.startDate||'';
-  sd.addEventListener('change',function(){D.meta.startDate=sd.value;saveData(D,'meta');onRe();});
-  var ed=el('input');ed.type='date';ed.value=D.meta.endDate||'';
-  ed.addEventListener('change',function(){D.meta.endDate=ed.value;saveData(D,'meta');onRe();});
-
-  var row3=el('div','sf-row3');
+  var destRow=el('div','sf-row3');
   var destSf=sf('여행지',dest);destSf.classList.add('sf-dest');
-  row3.appendChild(destSf);
-  row3.appendChild(sf('시작일',sd));
-  row3.appendChild(sf('종료일',ed));
-  g.appendChild(row3);
+  destRow.appendChild(destSf);
+
+  var dateMode=D.meta.dateMode||'range';
+  var modeRow=el('div','datemode-row');
+  var rangeBtn=el('button','datemode-btn'+(dateMode==='range'?' active':''),'기간 선택');
+  var customBtn=el('button','datemode-btn'+(dateMode==='custom'?' active':''),'개별 날짜 선택');
+  rangeBtn.type='button';customBtn.type='button';
+  rangeBtn.onclick=function(){
+    if(dateMode!=='range'){
+      var cds=(D.meta.customDates||[]).slice().sort();
+      if(cds.length){D.meta.startDate=cds[0];D.meta.endDate=cds[cds.length-1];}
+      D.meta.dateMode='range';saveData(D,'meta');onRe();
+    }
+  };
+  customBtn.onclick=function(){
+    if(dateMode!=='custom'){D.meta.dateMode='custom';saveData(D,'meta');onRe();}
+  };
+  modeRow.appendChild(rangeBtn);modeRow.appendChild(customBtn);
+
+  if(dateMode==='custom'){
+    g.appendChild(modeRow);
+    var customWrap=el('div','customdate-wrap');
+    var addRow=el('div','customdate-addrow');
+    var pickInp=el('input');pickInp.type='date';
+    var addBtn=el('button',null,'+ 날짜 추가');addBtn.type='button';
+    addBtn.onclick=function(){
+      if(!pickInp.value)return;
+      D.meta.customDates=D.meta.customDates||[];
+      if(D.meta.customDates.indexOf(pickInp.value)<0){
+        D.meta.customDates.push(pickInp.value);
+        D.meta.customDates.sort();
+        saveData(D,'meta');onRe();
+      }else{
+        pickInp.value='';
+      }
+    };
+    addRow.appendChild(pickInp);addRow.appendChild(addBtn);
+    customWrap.appendChild(addRow);
+
+    var cds2=(D.meta.customDates||[]).slice().sort();
+    if(cds2.length){
+      var chipWrap=el('div','customdate-chips');
+      cds2.forEach(function(dt){
+        var w=wk(dt);
+        var chip=el('div','customdate-chip');
+        var lbl=el('span',null,'');lbl.innerHTML='<span class="'+wkClass(w)+'">'+mmdd(dt)+' ('+w+')</span>';
+        chip.appendChild(lbl);
+        var rm=el('button',null,'✕');rm.type='button';
+        rm.onclick=function(){
+          D.meta.customDates=(D.meta.customDates||[]).filter(function(x){return x!==dt;});
+          saveData(D,'meta');onRe();
+        };
+        chip.appendChild(rm);
+        chipWrap.appendChild(chip);
+      });
+      customWrap.appendChild(chipWrap);
+    }else{
+      customWrap.appendChild(el('div','customdate-empty','선택된 날짜가 없습니다. 달력에서 날짜를 골라 추가해주세요.'));
+    }
+    g.appendChild(destRow);
+    g.appendChild(customWrap);
+  }else{
+    var sd=el('input');sd.type='date';sd.value=D.meta.startDate||'';
+    sd.addEventListener('change',function(){D.meta.startDate=sd.value;saveData(D,'meta');onRe();});
+    var ed=el('input');ed.type='date';ed.value=D.meta.endDate||'';
+    ed.addEventListener('change',function(){D.meta.endDate=ed.value;saveData(D,'meta');onRe();});
+    destRow.appendChild(sf('시작일',sd));
+    destRow.appendChild(sf('종료일',ed));
+    g.appendChild(modeRow);
+    g.appendChild(destRow);
+  }
 
   var cur=el('select');
   CURRENCIES.forEach(function(c){
@@ -1308,9 +1401,9 @@ function tabSummary(root,D){
   root.innerHTML='';
   root.appendChild(setupBar(root,D,re));
 
-  var dates=dateRange(D.meta.startDate,D.meta.endDate);
+  var dates=tripDates(D);
   root.appendChild(secHead('전체 요약',dates.length?dates.length+'일':''));
-  if(!dates.length){root.appendChild(el('div','empty','시작일과 종료일을 입력해주세요.'));return;}
+  if(!dates.length){root.appendChild(el('div','empty',noDatesMsg(D)));return;}
 
   var T=mkTable([{t:'일정',w:52},{t:'요약',w:130},{t:'호텔',w:100},{t:'이동',w:130},{t:'사용금액',w:138},{t:'비고',w:160}]);
   D.summaryNotes=D.summaryNotes||{};
@@ -1428,9 +1521,9 @@ function tabItinerary(root,D){
   root.innerHTML='';
   root.appendChild(setupBar(root,D,re));
 
-  var dates=dateRange(D.meta.startDate,D.meta.endDate);
+  var dates=tripDates(D);
   root.appendChild(secHead('타임테이블',dates.length?dates.length+'일':''));
-  if(!dates.length){root.appendChild(el('div','empty','기간을 입력하면 날짜별 타임테이블이 만들어집니다.'));return;}
+  if(!dates.length){root.appendChild(el('div','empty',noDatesMsg(D)));return;}
 
   var selDate=getUiTab('itin',dates);
 
@@ -1804,7 +1897,8 @@ function groupHotelStays(D,dates){
   dates.forEach(function(date){
     var h=(D.hotels||{})[date]||blankHotelNight(D);
     var sig=hotelNightSig(h);
-    if(cur&&cur.sig===sig){cur.last=date;cur.nights.push(date);}
+    /* 날짜 목록이 항상 연속되는 건 아님(개별 날짜 선택 모드) — 실제로 바로 다음날일 때만 같은 숙박으로 묶는다 */
+    if(cur&&cur.sig===sig&&nextDay(cur.last)===date){cur.last=date;cur.nights.push(date);}
     else{cur={sig:sig,first:date,last:date,nights:[date],h:h};groups.push(cur);}
   });
   return groups;
@@ -1813,9 +1907,9 @@ function tabHotels(root,D){
   var re=function(){tabHotels(root,D);};
   root.innerHTML='';
   root.appendChild(setupBar(root,D,re));
-  var dates=dateRange(D.meta.startDate,D.meta.endDate);
+  var dates=tripDates(D);
   root.appendChild(secHead('호텔',dates.length?dates.length+'박':''));
-  if(!dates.length){root.appendChild(el('div','empty','여행 기간을 먼저 입력해주세요.'));return;}
+  if(!dates.length){root.appendChild(el('div','empty',noDatesMsg(D)));return;}
 
   D.hotels=D.hotels||{};
   dates.forEach(function(date){D.hotels[date]=D.hotels[date]||blankHotelNight(D);});
@@ -1980,9 +2074,9 @@ function tabExpenses(root,D){
   var re=function(){tabExpenses(root,D);};
   root.innerHTML='';
   root.appendChild(setupBar(root,D,re));
-  var dates=dateRange(D.meta.startDate,D.meta.endDate);
+  var dates=tripDates(D);
   root.appendChild(secHead('지출노트'));
-  if(!dates.length){root.appendChild(el('div','empty','여행 기간을 먼저 입력해주세요.'));return;}
+  if(!dates.length){root.appendChild(el('div','empty',noDatesMsg(D)));return;}
 
   var impBtn=el('button','btn-add ghost','📥 항공·호텔·렌트카·투어 값 가져오기');
   impBtn.onclick=function(){
