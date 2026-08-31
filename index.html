@@ -677,6 +677,9 @@ function buildExcelWorkbook(D){
   }).map(function(x){return [x.date,x.time||'',x.endTime||'',x.activity||'',x.memo||''];});
   addExcelSheet(wb,'일정',['날짜','시작시간','종료시간','내용','메모'],itinRows);
 
+  var expRows=(D.expenses||[]).map(function(e){return [e.date,e.cat,e.item,e.price,e.priceCur,e.payment,e.memo];});
+  addExcelSheet(wb,'지출노트',['날짜','카테고리','사용내역','금액','통화','결제','비고'],expRows,3);
+
   var flightRows=[];
   (D.flights||[]).forEach(function(j){
     (j.segs||[]).forEach(function(s,si){
@@ -694,9 +697,6 @@ function buildExcelWorkbook(D){
 
   var tourRows=(D.tours||[]).map(function(t){return [t.date,t.region,t.tourName,t.program,t.agency,t.price,t.priceCur,t.payment,t.memo];});
   addExcelSheet(wb,'투어',['날짜','지역','투어명','프로그램','예약처','금액','통화','결제','비고'],tourRows,5);
-
-  var expRows=(D.expenses||[]).map(function(e){return [e.date,e.cat,e.item,e.price,e.priceCur,e.payment,e.memo];});
-  addExcelSheet(wb,'지출노트',['날짜','카테고리','사용내역','금액','통화','결제','비고'],expRows,3);
 
   var rcRows=(D.rentalcar||[]).map(function(r){return [r.date,r.time,r.company,r.carType,r.price,r.priceCur,r.insurance,r.payment,r.memo];});
   addExcelSheet(wb,'렌트카',['날짜','시간','업체','차종','가격','통화','보험','결제','비고'],rcRows,4);
@@ -2489,10 +2489,10 @@ function startApp(){
   TABS=[
    {k:'summary',  l:'SUMMARY',   s:'여행 전체 집계',        sec:'summaryNotes', r:function(x){tabSummary(x,D);}},
    {k:'itinerary',l:'일정',       s:'기간 · 타임테이블',      sec:'itinerary',    r:function(x){tabItinerary(x,D);}},
+   {k:'expenses', l:'지출노트',    s:'날짜별 소비 · 소계',     sec:'expenses',     r:function(x){tabExpenses(x,D);}},
    {k:'flights',  l:'항공',       s:'출발 · 도착 항공편',     sec:'flights',      r:function(x){tabFlights(x,D);}},
    {k:'hotels',   l:'호텔',       s:'날짜별 숙박',           sec:'hotels',       r:function(x){tabHotels(x,D);}},
    {k:'tours',    l:'투어',       s:'지역별 투어 예약',       sec:'tours',        r:function(x){tabTours(x,D);}},
-   {k:'expenses', l:'지출노트',    s:'날짜별 소비 · 소계',     sec:'expenses',     r:function(x){tabExpenses(x,D);}},
    {k:'rentalcar',l:'렌트카',     s:'예약 정보 · 업체 비교',   sec:'rentalcar',    r:function(x){tabRental(x,D);}},
    {k:'records',  l:'링크/이미지 기록', s:'제목 · 링크 · 이미지',   sec:'records',      r:function(x){tabRecords(x,D,'records','링크/이미지 기록');}},
    {k:'ideas',    l:'아이디어공간', s:'제목 · 내용 · 비고',   sec:'ideas',        r:function(x){tabIdeas(x,D);}},

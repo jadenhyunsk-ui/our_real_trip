@@ -156,7 +156,7 @@ table.grid td.del button{width:100%;padding:8px 0;color:var(--red);font-size:13p
 <div id="appRoot" class="app-root-hidden">
 <div id="appbar"></div>
 <main>
-<a class="back" href="../../index.html#tours">← 4. 투어 탭으로</a>
+<a class="back" href="../../index.html#tours">← 5. 투어 탭으로</a>
 <div class="sec-head"><div class="sec-title">투어 비교표</div><div class="sec-count" id="cnt"></div></div>
 <div id="hintbox" class="hint"></div>
 <div id="cards"></div>
@@ -798,7 +798,7 @@ function startApp(){
   if(!activeTripId||!AllData.trips[activeTripId])activeTripId=AllData.tripOrder[0];
   D=AllData.trips[activeTripId];
   buildAppBar(document.getElementById('appbar'));
-  document.getElementById('hintbox').innerHTML='투어 탭과 <b>동일한 표 형식</b>입니다. 여기 <b>이름</b>과 같은 투어명을 4번 탭에 쓰면 「비교」를 눌렀을 때 해당 행으로 이동합니다. <b>카테고리</b>가 같으면 같은 옅은 색으로 묶여 표시됩니다. <b>선정</b>에 체크 후 맨 아래 버튼을 누르면 체크된 투어가 투어 탭에 자동으로 추가됩니다.';
+  document.getElementById('hintbox').innerHTML='투어 탭과 <b>동일한 표 형식</b>입니다. 여기 <b>이름</b>과 같은 투어명을 5번 탭에 쓰면 「비교」를 눌렀을 때 해당 행으로 이동합니다. <b>카테고리</b>가 같으면 같은 옅은 색으로 묶여 표시됩니다. <b>선정</b>에 체크 후 맨 아래 버튼을 누르면 체크된 투어가 투어 탭에 자동으로 추가됩니다.';
   var L={newName:'새 투어',agencyPh:'운영사/대행사',duration:'체류시간·일정',points:'방문 포인트',
     addLabel:'+ 비교할 투어 추가',applyLabel:'✅ 체크한 투어를 투어 탭에 반영',
     importLabel:'📥 현재 투어 탭 값 불러오기',
