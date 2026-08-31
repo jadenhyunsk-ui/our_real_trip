@@ -153,11 +153,15 @@ table.grid td input,table.grid td select,table.grid td textarea{
 }
 table.grid td textarea{resize:vertical;min-height:34px;line-height:1.4;overflow:hidden;}
 table.grid td input:focus,table.grid td select:focus,table.grid td textarea:focus{background:#FFF6E9;}
-td.ov-cell{position:relative;}
-td.ov-cell .ov-input{color:transparent;position:relative;z-index:1;background:transparent;}
-td.ov-cell .ov-input:focus{color:transparent;}
-td.ov-cell .ov-label{position:absolute;left:7px;top:50%;transform:translateY(-50%);pointer-events:none;
-  font-size:13px;color:var(--ink);white-space:nowrap;z-index:0;}
+/* 날짜/시간 오버레이는 자체 position:relative 래퍼(.ov-cell-inner) 안에서만 위치를 잡는다 —
+   td 자체가 position:sticky(틀고정)일 때 절대위치 자식의 위치 계산이 브라우저마다 어긋나
+   글자가 옆 칸과 겹쳐 보이는 문제를 막기 위함(td.ov-cell에 직접 position을 두지 않음). */
+.ov-cell-inner{position:relative;height:100%;}
+.ov-cell-inner .ov-input{color:transparent;position:relative;z-index:1;background:transparent;}
+.ov-cell-inner .ov-input:focus{color:transparent;}
+.ov-cell-inner .ov-label{position:absolute;left:7px;top:50%;transform:translateY(-50%);pointer-events:none;
+  font-size:13px;color:var(--ink);white-space:nowrap;z-index:0;
+  max-width:calc(100% - 12px);overflow:hidden;text-overflow:ellipsis;}
 table.grid td.num input{text-align:right;font-family:var(--mono);color:var(--amber);font-weight:700;}
 table.grid td.ctr{text-align:center;}
 table.grid td.rowhead{
@@ -958,25 +962,25 @@ function cellInput(td,obj,key,type,ph,onDone){
 }
 /* 날짜 입력칸: 네이티브 달력은 그대로 쓰되, 화면에 보이는 글자는 연도 없는 MM/DD로 표시 */
 function cellDate(td,obj,key,onDone){
-  td.classList.add('ov-cell');
+  var inner=el('div','ov-cell-inner');
   var i=el('input');i.type='date';i.className='ov-input';i.value=obj[key]||'';
   var lbl=el('span','ov-label');
   function upd(){lbl.innerHTML=mmddColored(obj[key]);}
   upd();
   i.addEventListener('input',function(){obj[key]=i.value;upd();if(onDone)onDone(false);});
   i.addEventListener('change',function(){obj[key]=i.value;upd();if(onDone)onDone(true);});
-  td.appendChild(i);td.appendChild(lbl);return i;
+  inner.appendChild(i);inner.appendChild(lbl);td.appendChild(inner);return i;
 }
 /* 시간 입력칸: 네이티브 값은 항상 24시간제(HH:MM)이므로 그 값을 그대로 표시만 하면 됨 */
 function cellTime(td,obj,key,onDone){
-  td.classList.add('ov-cell');
+  var inner=el('div','ov-cell-inner');
   var i=el('input');i.type='time';i.className='ov-input';i.value=obj[key]||'';
   var lbl=el('span','ov-label');
   function upd(){lbl.textContent=obj[key]||'';}
   upd();
   i.addEventListener('input',function(){obj[key]=i.value;upd();if(onDone)onDone(false);});
   i.addEventListener('change',function(){obj[key]=i.value;upd();if(onDone)onDone(true);});
-  td.appendChild(i);td.appendChild(lbl);return i;
+  inner.appendChild(i);inner.appendChild(lbl);td.appendChild(inner);return i;
 }
 function cellSelect(td,obj,key,opts,onDone){
   var s=el('select');
@@ -1056,6 +1060,20 @@ function mkTable(cols){
   var tb=el('tbody');t.appendChild(tb);
   sc.appendChild(t);wrap.appendChild(sc);
   return {wrap:wrap,tbody:tb,table:t,scroll:sc};
+}
+/* 첫 번째 열(rowhead, 틀고정)에 이어 두 번째 열도 함께 고정 — 첫 열의 실제 렌더링 폭을
+   측정해 두 번째 열(헤더+본문 각 행)의 sticky left 값으로 맞춘다. 두 번째 열도 미리
+   'rowhead' 클래스가 붙어 position:sticky인 상태여야 한다(left 기본값 0을 여기서 덮어씀). */
+function stickifySecondColumn(T){
+  var firstTh=T.table.querySelector('thead th:first-child');
+  if(!firstTh)return;
+  var w=firstTh.getBoundingClientRect().width;
+  var secondTh=T.table.querySelector('thead th:nth-child(2)');
+  if(secondTh){secondTh.style.position='sticky';secondTh.style.left=w+'px';secondTh.style.zIndex='3';}
+  Array.prototype.forEach.call(T.tbody.children,function(tr){
+    var td2=tr.children[1];
+    if(td2&&td2.tagName==='TD')td2.style.left=w+'px';
+  });
 }
 function scrollHint(wrap,txt){
   wrap.appendChild(el('div','scroll-hint',txt||'← 좌우로 밀어서 나머지 항목 보기'));
@@ -1772,7 +1790,7 @@ function tabFlights(root,D){
   });
 
   var T=mkTable([
-    {t:'여정',w:55},{t:'날짜',w:76},{t:'출발',w:60},{t:'도착',w:60},
+    {t:'여정',w:68},{t:'날짜',w:76},{t:'출발',w:60},{t:'도착',w:60},
     {t:'항공사',w:66},{t:'편명',w:56},{t:'좌석',w:56},{t:'출발지',w:90},{t:'도착지',w:90},
     {t:'예약처',w:66},{t:'금액',w:120},{t:'결제',w:58},{t:'예약일',w:76},{t:'예약번호',w:90},{t:'이메일',w:150},{t:'비고',w:186},{t:'',w:32}]);
 
@@ -1816,7 +1834,7 @@ function tabFlights(root,D){
         if(full&&si===0&&j.tripType==='왕복'&&j.segs[1]&&!j.segs[1].from)j.segs[1].from=s.to;
         sv(full);
       };
-      cellDate(td(),s,'date',sv);
+      cellDate(td('rowhead'),s,'date',sv);
       cellTime(td(),s,'time',sv);
       cellTime(td(),s,'arriveTime',sv);
       cellInput(td(),s,'airline','text','항공사',si===0?svAirline:sv);
@@ -1856,6 +1874,7 @@ function tabFlights(root,D){
 
   root.appendChild(T.wrap);
   scrollHint(T.wrap);
+  stickifySecondColumn(T);
 
   var add=el('button','btn-add','+ 항공 여정 추가');
   add.onclick=function(){
@@ -1939,16 +1958,18 @@ function tabHotels(root,D){
     };
     function td(cls){var c=el('td',cls);tr.appendChild(c);return c;}
 
-    var tdCi=el('td','rowhead ov-cell');
+    var tdCi=el('td','rowhead');
+    var innerCi=el('div','ov-cell-inner');
     var ci=el('input');ci.type='date';ci.className='ov-input';ci.value=g.first;
     var ciLbl=el('span','ov-label');ciLbl.innerHTML=mmddColored(g.first);
     ci.addEventListener('change',function(){
       if(!ci.value||!applyRange(g,ci.value,g.last)){alert('여행 기간과 겹치는 날짜를 입력해주세요.');ci.value=g.first;ciLbl.innerHTML=mmddColored(g.first);return;}
       saveData(D);re();
     });
-    tdCi.appendChild(ci);tdCi.appendChild(ciLbl);tr.appendChild(tdCi);
+    innerCi.appendChild(ci);innerCi.appendChild(ciLbl);tdCi.appendChild(innerCi);tr.appendChild(tdCi);
 
-    var tdCo=el('td','ov-cell');
+    var tdCo=el('td');
+    var innerCo=el('div','ov-cell-inner');
     var co=el('input');co.type='date';co.className='ov-input';co.value=nextDay(g.last);
     var coLbl=el('span','ov-label');coLbl.innerHTML=mmddColored(nextDay(g.last));
     co.addEventListener('change',function(){
@@ -1956,7 +1977,7 @@ function tabHotels(root,D){
       if(!applyRange(g,g.first,newLast)){alert('여행 기간과 겹치는 날짜를 입력해주세요.');co.value=nextDay(g.last);coLbl.innerHTML=mmddColored(nextDay(g.last));return;}
       saveData(D);re();
     });
-    tdCo.appendChild(co);tdCo.appendChild(coLbl);tr.appendChild(tdCo);
+    innerCo.appendChild(co);innerCo.appendChild(coLbl);tdCo.appendChild(innerCo);tr.appendChild(tdCo);
 
     cellInput(td(),h,'name','text','호텔명',s);
     cellInput(td(),h,'place','text','장소',s);
