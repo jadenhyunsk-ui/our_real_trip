@@ -43,9 +43,6 @@ a{color:inherit;text-decoration:none;}
 .tripbar-name span{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
 .tripbar-chev{flex:0 0 auto;font-size:11px;font-weight:600;opacity:.9;white-space:nowrap;}
 tr.trip-row-active td{background:var(--sand)!important;}
-.trip-row-select{font-size:11px;font-weight:700;color:#fff;background:var(--navy);
-  border-radius:6px;padding:7px 10px;white-space:nowrap;}
-.trip-row-select:disabled{background:var(--sand);color:var(--muted);}
 .trip-add-row{display:flex;gap:6px;margin-bottom:8px;}
 .trip-add-row input{flex:1;min-width:0;border:1px solid var(--line);border-radius:6px;padding:8px 9px;
   font-size:13px;background:#FCFAF6;}
@@ -756,6 +753,8 @@ function mmddColored(s){return s?('<span class="'+wkClass(wk(s))+'">'+mmdd(s)+'<
 function mmdd(s){return s?s.slice(5,7)+'/'+s.slice(8,10):'';}
 /* 여행 설정 요약·여행 이름에서만 쓰는, 연도를 포함한 날짜 표기 */
 function mmddFull(s){return s?s.slice(0,4)+'.'+s.slice(5,7)+'.'+s.slice(8,10):'';}
+/* 여행 선택 표의 '기간' 칸에서만 쓰는, 두 자리 연도 표기(YY/MM/DD) */
+function yymmdd(s){return s?s.slice(2,4)+'/'+s.slice(5,7)+'/'+s.slice(8,10):'';}
 function nextDay(s){var d=new Date(s+'T00:00:00');d.setDate(d.getDate()+1);return fmtLocalDate(d);}
 function dayBefore(s){var d=new Date(s+'T00:00:00');d.setDate(d.getDate()-1);return fmtLocalDate(d);}
 
@@ -1140,32 +1139,69 @@ function openTripSwitcher(){
   var ov=el('div','tl-editor');
   ov.appendChild(el('div','tl-editor-title','여행 선택'));
 
-  var T=mkTable([{t:'기간',w:120},{t:'이름',w:140},{t:'지역',w:100},{t:'',w:64},{t:'',w:32}]);
+  var T=mkTable([{t:'기간',w:92},{t:'이름',w:140},{t:'지역',w:100},{t:'',w:32}]);
+  var firstTh=T.table.querySelector('thead th:first-child');
+  if(firstTh){firstTh.style.position='static';firstTh.style.left='auto';}
   AllData.tripOrder.forEach(function(tid){
     var t=AllData.trips[tid];if(!t)return;
     var tr=el('tr');
     if(tid===activeTripId)tr.classList.add('trip-row-active');
-    function td(cls){var c=el('td',cls);tr.appendChild(c);return c;}
 
-    var periodTxt=t.meta.startDate?(mmddFull(t.meta.startDate)+(t.meta.endDate?'~'+mmddFull(t.meta.endDate):'')):'-';
-    var pc=el('td');var pd=el('div',null,periodTxt);pd.style.cssText='padding:8px 7px;font-size:12px;';pc.appendChild(pd);tr.appendChild(pc);
-
-    cellInput(td(),t.meta,'title','text','제목 없는 여행',function(full){
-      if(full)renameTrip(tid,t.meta.title||'제목 없는 여행');
-    });
-
-    var rc=el('td');var rd=el('div',null,t.meta.destination||'-');rd.style.cssText='padding:8px 7px;font-size:12.5px;';rc.appendChild(rd);tr.appendChild(rc);
-
-    var selTd=td('ctr');
-    var selBtn=el('button','trip-row-select',tid===activeTripId?'보는 중':'선택');
-    if(tid===activeTripId)selBtn.disabled=true;
-    selBtn.onclick=function(e){
-      e.stopPropagation();
+    function selectThis(e){
+      if(e)e.stopPropagation();
+      if(tid===activeTripId)return;
       switchTrip(tid);
       document.body.removeChild(backdrop);
       show((location.hash||'').replace('#','')||'summary');
+    }
+
+    var periodTxt;
+    if(t.meta.dateMode==='custom'){
+      var cds=(t.meta.customDates||[]).slice().sort();
+      periodTxt=cds.length?(yymmdd(cds[0])+(cds.length>1?'~'+yymmdd(cds[cds.length-1]):'')):'-';
+    }else{
+      periodTxt=t.meta.startDate?(yymmdd(t.meta.startDate)+(t.meta.endDate?'~'+yymmdd(t.meta.endDate):'')):'-';
+    }
+    var pc=el('td');var pd=el('div',null,periodTxt);
+    pd.style.cssText='padding:8px 7px;font-size:12px;cursor:pointer;';
+    pc.appendChild(pd);pc.onclick=selectThis;tr.appendChild(pc);
+
+    var nc=el('td');
+    var nameDisp=el('div',null,t.meta.title||'제목 없는 여행');
+    nameDisp.style.cssText='padding:8px 7px;font-size:12.5px;cursor:pointer;';
+    nc.appendChild(nameDisp);
+    /* 한 번 누르면 선택, 두 번 누르면 이름 변경 — 더블클릭 판정까지 짧게 기다렸다가
+       선택을 실행해서 더블클릭이 선택으로 먼저 소비되지 않게 함 */
+    var nameClickTimer=null;
+    function nameClickHandler(e){
+      e.stopPropagation();
+      if(nameClickTimer)return;
+      nameClickTimer=setTimeout(function(){nameClickTimer=null;selectThis();},250);
+    }
+    nc.onclick=nameClickHandler;
+    nc.ondblclick=function(e){
+      e.stopPropagation();
+      if(nameClickTimer){clearTimeout(nameClickTimer);nameClickTimer=null;}
+      var inp=el('input');inp.type='text';inp.value=t.meta.title||'';
+      inp.style.cssText='width:100%;border:none;background:#FFF6E9;padding:8px 7px;font-size:12.5px;outline:none;';
+      nc.onclick=null;nc.innerHTML='';nc.appendChild(inp);inp.focus();inp.select();
+      var done=false;
+      function commit(){
+        if(done)return;done=true;
+        var v=inp.value.trim();
+        if(v)t.meta.title=v;
+        renameTrip(tid,t.meta.title||'제목 없는 여행');
+        nameDisp.textContent=t.meta.title||'제목 없는 여행';
+        nc.innerHTML='';nc.appendChild(nameDisp);nc.onclick=nameClickHandler;
+      }
+      inp.addEventListener('blur',commit);
+      inp.addEventListener('keydown',function(ev){if(ev.key==='Enter')inp.blur();});
     };
-    selTd.appendChild(selBtn);
+    tr.appendChild(nc);
+
+    var rc=el('td');var rd=el('div',null,t.meta.destination||'-');
+    rd.style.cssText='padding:8px 7px;font-size:12.5px;cursor:pointer;';
+    rc.appendChild(rd);rc.onclick=selectThis;tr.appendChild(rc);
 
     delCell(tr,function(e){
       e.stopPropagation();
@@ -1581,6 +1617,7 @@ function tabItinerary(root,D){
   Array.prototype.forEach.call(root.querySelectorAll('.tl-item'),resizeBlockForContent);
 }
 
+var tlScrollMemo={};
 function buildTimeline(D,date,items,re){
   var wrap=el('div','tl-wrap');
   var scroll=el('div','tl-scroll');
@@ -1620,7 +1657,12 @@ function buildTimeline(D,date,items,re){
 
   scroll.appendChild(inner);
   wrap.appendChild(scroll);
-  setTimeout(function(){scroll.scrollTop=6*TL_PX;},30);
+  /* 다시 그려져도 보던 시간대를 유지 (처음 볼 때만 06:00 위치) */
+  var tlKey=activeTripId+'::'+date;
+  scroll.addEventListener('scroll',function(){tlScrollMemo[tlKey]=scroll.scrollTop;});
+  setTimeout(function(){
+    scroll.scrollTop=tlScrollMemo[tlKey]!=null?tlScrollMemo[tlKey]:6*TL_PX;
+  },30);
   return wrap;
 }
 
@@ -2479,6 +2521,43 @@ function tabChecklist(root,D){
 
 var AllData,activeTripId,D,TABS,bar,tb,ct,tripBarEl,show;
 var appStarted=false;
+/* 탭을 다시 그릴 때(root.innerHTML='') 스크롤 위치를 유지하고, 칸을 클릭하다가 다시 그려져
+   그 칸이 사라진 경우 같은 순서의 칸에 포커스를 되돌려 바로 편집할 수 있게 함.
+   탭을 새로 여는 경우(show)는 scrollKeeperSkip으로 제외. */
+var scrollKeeperSkip=false;
+function installScrollKeeper(root){
+  var lastDown=null;
+  var FIELDS='input,select,textarea';
+  root.addEventListener('pointerdown',function(e){
+    var f=e.target.closest?e.target.closest(FIELDS):null;
+    lastDown=f?{idx:Array.prototype.indexOf.call(root.querySelectorAll(FIELDS),f),t:Date.now()}:null;
+  },true);
+  var desc=Object.getOwnPropertyDescriptor(Element.prototype,'innerHTML');
+  Object.defineProperty(root,'innerHTML',{configurable:true,
+    get:function(){return desc.get.call(this);},
+    set:function(v){
+      var snap=null;
+      if(v===''&&!scrollKeeperSkip&&this.firstChild){
+        snap={x:window.pageXOffset,y:window.pageYOffset,
+          sc:Array.prototype.map.call(this.querySelectorAll('.tbl-scroll,.tl-scroll'),function(s){return[s.scrollLeft,s.scrollTop];}),
+          down:(lastDown&&Date.now()-lastDown.t<800)?lastDown.idx:-1};
+      }
+      desc.set.call(this,v);
+      if(!snap)return;
+      var self=this;
+      /* 같은 동기 렌더가 끝난 직후(그려지기 전)에 복원 */
+      Promise.resolve().then(function(){
+        var sc=self.querySelectorAll('.tbl-scroll,.tl-scroll');
+        snap.sc.forEach(function(p,i){if(sc[i]){sc[i].scrollLeft=p[0];sc[i].scrollTop=p[1];}});
+        window.scrollTo(snap.x,snap.y);
+        if(snap.down>-1){
+          var f=self.querySelectorAll(FIELDS)[snap.down];
+          if(f){try{f.focus({preventScroll:true});}catch(err){}}
+          lastDown=null;
+        }
+      });
+    }});
+}
 function startApp(){
   if(appStarted)return;
   appStarted=true;
@@ -2499,6 +2578,7 @@ function startApp(){
    {k:'checklist',l:'체크리스트',  s:'출발 전 준비 확인',    sec:'checklist',    r:function(x){tabChecklist(x,D);}}
   ];
   bar=document.getElementById('appbar');tb=document.getElementById('tabbar');ct=document.getElementById('content');tripBarEl=document.getElementById('tripbar');
+  installScrollKeeper(ct);
   show=function(k){
     var t=null;
     for(var i=0;i<TABS.length;i++){if(TABS[i].k===k){t=TABS[i];break;}}
@@ -2512,7 +2592,8 @@ function startApp(){
     buildTripBar(tripBarEl);
     buildAppBar(bar);
     window.scrollTo(0,0);
-    t.r(ct);
+    scrollKeeperSkip=true;
+    try{t.r(ct);}finally{scrollKeeperSkip=false;}
   };
   TABS.forEach(function(t){
     var b=document.createElement('button');
